@@ -383,7 +383,7 @@ int main(int argc, char *argv[])
 	//Check arguments
 	if (argc < 5)
 	{
-		std::cout << "usage: SA1LVL2RBX upload/rbx_content scale sa1lvl texlist_index" << std::endl;
+		std::cout << "usage: SA1LVL2RBX upload/content_directory scale sa1lvl texlist_index_txt" << std::endl;
 		return 0;
 	}
 
