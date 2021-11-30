@@ -127,8 +127,10 @@ struct SALVL_MeshPart
 
 	//File information
 	std::string name;
+	std::string name_texture;
 	std::string path;
 	std::string url;
+	std::string url_texture;
 
 	unsigned int ind = 0;
 
@@ -166,12 +168,12 @@ struct SALVL_MeshPart
 		size.x = maxx - minx;
 		size.y = maxy - miny;
 		size.z = maxz - minz;
-		if (size.x < 0.1)
-			size.x = 0.1;
-		if (size.y < 0.1)
-			size.y = 0.1;
-		if (size.z < 0.1)
-			size.z = 0.1;
+		if (size.x < 0.1f)
+			size.x = 0.1f;
+		if (size.y < 0.1f)
+			size.y = 0.1f;
+		if (size.z < 0.1f)
+			size.z = 0.1f;
 
 		//Correct AABB
 		aabb_correct.x = (minx + maxx) * 0.5f;
@@ -248,7 +250,7 @@ struct SALVL_CSGMesh
 
 				//Break line appropriately
 				std::string result;
-				for (int i = 0; i < resultado.size(); i += 72)
+				for (size_t i = 0; i < resultado.size(); i += 72)
 				{
 					if (!result.empty())
 						result.push_back('\n');
@@ -345,15 +347,15 @@ void Reimp_njRotateZ(Float *cframe, Angle x)
 //File writes
 void Write16(std::ofstream &stream, Uint16 x)
 {
-	stream.put(x);
-	stream.put(x >> 8);
+	stream.put((char)x);
+	stream.put((char)(x >> 8));
 }
 void Write32(std::ofstream &stream, Uint32 x)
 {
-	stream.put(x);
-	stream.put(x >> 8);
-	stream.put(x >> 16);
-	stream.put(x >> 24);
+	stream.put((char)x);
+	stream.put((char)(x >> 8));
+	stream.put((char)(x >> 16));
+	stream.put((char)(x >> 24));
 }
 void WriteFloat(std::ofstream &stream, float x)
 {
@@ -362,15 +364,15 @@ void WriteFloat(std::ofstream &stream, float x)
 
 template<typename T> void Push16(std::vector<T> &stream, Uint16 x)
 {
-	stream.push_back(x);
-	stream.push_back(x >> 8);
+	stream.push_back((T)x);
+	stream.push_back((T)(x >> 8));
 }
 template<typename T> void Push32(std::vector<T> &stream, Uint32 x)
 {
-	stream.push_back(x);
-	stream.push_back(x >> 8);
-	stream.push_back(x >> 16);
-	stream.push_back(x >> 24);
+	stream.push_back((T)x);
+	stream.push_back((T)(x >> 8));
+	stream.push_back((T)(x >> 16));
+	stream.push_back((T)(x >> 24));
 }
 template<typename T> void PushFloat(std::vector<T> &stream, float x)
 {
@@ -765,9 +767,9 @@ int main(int argc, char *argv[])
 			stream_mesh.write("version 2.00\n", 13);
 
 			//Write mesh header
-			stream_mesh.put(0x0C); stream_mesh.put(0x00); //sizeof_MeshHeader
-			stream_mesh.put(0x28); //sizeof_MeshVertex
-			stream_mesh.put(0x0C); //sizeof_MeshFace
+			Write16(stream_mesh, 12); //sizeof_MeshHeader
+			stream_mesh.put((char)0x28); //sizeof_MeshVertex
+			stream_mesh.put((char)0x0C); //sizeof_MeshFace
 
 			unsigned int num_verts = meshpart->vertex.size();
 			Write32(stream_mesh, num_verts);
@@ -780,8 +782,8 @@ int main(int argc, char *argv[])
 				WriteFloat(stream_mesh, k.pos.x); WriteFloat(stream_mesh, k.pos.y); WriteFloat(stream_mesh, k.pos.z); //Position
 				WriteFloat(stream_mesh, k.nor.x); WriteFloat(stream_mesh, k.nor.y); WriteFloat(stream_mesh, k.nor.z); //Normal
 				WriteFloat(stream_mesh, k.tex.x); WriteFloat(stream_mesh, k.tex.y); //Texture
-				stream_mesh.put(0x00); stream_mesh.put(0x00); stream_mesh.put(0x00); stream_mesh.put(0x00); //Tangent
-				stream_mesh.put(0xFF); stream_mesh.put(0xFF); stream_mesh.put(0xFF); stream_mesh.put(0xFF); //RGBA tint
+				stream_mesh.put((char)0x00); stream_mesh.put((char)0x00); stream_mesh.put((char)0x00); stream_mesh.put((char)0x00); //Tangent
+				stream_mesh.put((char)0xFF); stream_mesh.put((char)0xFF); stream_mesh.put((char)0xFF); stream_mesh.put((char)0xFF); //RGBA tint
 			}
 
 			//Write indices
@@ -798,21 +800,75 @@ int main(int argc, char *argv[])
 	{
 		//Upload content to Roblox
 		std::cout << "Uploading content to Roblox..." << std::endl;
+
+		//Upload meshes
+		std::unordered_map<std::string, std::string> upload_texs;
+
+		for (auto &i : meshes)
+		{
+			for (auto &j : i.second.parts)
+			{
+				//Upload mesh
+
+				//Set texture to be loaded
+				if ((j.second.matflags & NJD_FLAG_USE_TEXTURE) && j.second.texture != nullptr)
+				{
+					if (j.second.matflags & NJD_FLAG_FLIP_U)
+					{
+						j.second.name_texture = ((j.second.matflags & NJD_FLAG_FLIP_V) ? j.second.texture->name_fuv : j.second.texture->name_fu);
+						upload_texs[j.second.name_texture] = ((j.second.matflags & NJD_FLAG_FLIP_V) ? j.second.texture->path_fuv : j.second.texture->path_fu);
+					}
+					else
+					{
+						j.second.name_texture = ((j.second.matflags & NJD_FLAG_FLIP_V) ? j.second.texture->name_fv : j.second.texture->name);
+						upload_texs[j.second.name_texture] = ((j.second.matflags & NJD_FLAG_FLIP_V) ? j.second.texture->path_fv : j.second.texture->path);
+					}
+				}
+			}
+		}
+
+		//Upload textures
+		for (auto &i : upload_texs)
+		{
+
+		}
+
+		//Assign uploaded textures to meshes
+		for (auto &i : meshes)
+			for (auto &j : i.second.parts)
+				j.second.url_texture = upload_texs[j.second.name_texture];
 	}
 	else
 	{
 		//Get rbxasset URLs
 		std::cout << "Getting rbxasset:// URLs..." << std::endl;
 
-		for (auto &i : meshes)
-			for (auto &j : i.second.parts)
-				j.second.url = "rbxasset://salvl/" + j.second.name;
 		for (auto &i : textures)
 		{
 			i.url = "rbxasset://salvl/" + i.name;
 			i.url_fu = "rbxasset://salvl/" + i.name_fu;
 			i.url_fv = "rbxasset://salvl/" + i.name_fv;
 			i.url_fuv = "rbxasset://salvl/" + i.name_fuv;
+		}
+		for (auto &i : meshes)
+		{
+			for (auto &j : i.second.parts)
+			{
+				j.second.url = "rbxasset://salvl/" + j.second.name;
+				if ((j.second.matflags & NJD_FLAG_USE_TEXTURE) && j.second.texture != nullptr)
+				{
+					if (j.second.matflags & NJD_FLAG_FLIP_U)
+					{
+						j.second.name_texture = ((j.second.matflags & NJD_FLAG_FLIP_V) ? j.second.texture->name_fuv : j.second.texture->name_fu);
+						j.second.url_texture = ((j.second.matflags & NJD_FLAG_FLIP_V) ? j.second.texture->url_fuv : j.second.texture->url_fu);
+					}
+					else
+					{
+						j.second.name_texture = ((j.second.matflags & NJD_FLAG_FLIP_V) ? j.second.texture->name_fv : j.second.texture->name);
+						j.second.url_texture = ((j.second.matflags & NJD_FLAG_FLIP_V) ? j.second.texture->url_fv : j.second.texture->url);
+					}
+				}
+			}
 		}
 	}
 
@@ -896,7 +952,7 @@ int main(int argc, char *argv[])
 							Push32(csgmesh_data, 3);
 
 							//Write sub-meshes
-							for (int j = 0; j < i.meshpart->indices.size(); j += 3)
+							for (size_t j = 0; j < i.meshpart->indices.size(); j += 3)
 							{
 								//Get vertices
 								SALVL_Vertex *v0 = &i.meshpart->vertex[i.meshpart->indices[j + 0]];
