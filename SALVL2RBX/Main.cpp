@@ -778,6 +778,7 @@ int main(int argc, char *argv[])
 								stream_rbxmx << "<bool name=\"Anchored\">true</bool>" << std::endl;
 								stream_rbxmx << "<bool name=\"CanCollide\">true</bool>" << std::endl;
 								stream_rbxmx << "<bool name=\"CanTouch\">false</bool>" << std::endl;
+								stream_rbxmx << "<bool name=\"DoubleSided\">true</bool>" << std::endl;
 								stream_rbxmx << "<CoordinateFrame name = \"CFrame\">" << std::endl;
 									stream_rbxmx << "<X>" << i.pos.x * scale << "</X>" << std::endl;
 									stream_rbxmx << "<Y>" << i.pos.y * scale << "</Y>" << std::endl;
@@ -824,6 +825,7 @@ int main(int argc, char *argv[])
 								stream_rbxmx << "<bool name=\"Anchored\">true</bool>" << std::endl;
 								stream_rbxmx << "<bool name=\"CanCollide\">false</bool>" << std::endl;
 								stream_rbxmx << "<bool name=\"CanTouch\">false</bool>" << std::endl;
+								stream_rbxmx << "<bool name=\"DoubleSided\">true</bool>" << std::endl;
 								stream_rbxmx << "<CoordinateFrame name = \"CFrame\">" << std::endl;
 									stream_rbxmx << "<X>" << i.pos.x * scale << "</X>" << std::endl;
 									stream_rbxmx << "<Y>" << i.pos.y * scale << "</Y>" << std::endl;
