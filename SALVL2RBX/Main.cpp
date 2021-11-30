@@ -88,10 +88,19 @@ struct SALVL_MeshPart
 		vertex.nor.x = model->normals[i].x;
 		vertex.nor.y = model->normals[i].y;
 		vertex.nor.z = model->normals[i].z;
+		if (meshset->vertuv != nullptr)
+		{
+			vertex.tex.x = meshset->vertuv[j].u / 256.0f;
+			vertex.tex.y = meshset->vertuv[j].v / 256.0f;
+		}
 
 		//Add vertex and push index
 		indices.push_back(AddVertex(vertex));
 	}
+
+	//Material information
+	std::string texture;
+	Uint32 diffuse;
 
 	//File information
 	unsigned int ind = 0;
@@ -240,6 +249,13 @@ struct SALVL_CSGMesh
 	}
 };
 
+struct SALVL_Texture
+{
+	//Texture information
+	std::string name, path;
+	int xres, yres;
+};
+
 //Ninja reimplementation
 void Reimp_njRotateX(NJS_MATRIX cframe, Angle x)
 {
@@ -346,9 +362,9 @@ template<typename T> void PushFloat(std::vector<T> &stream, float x)
 int main(int argc, char *argv[])
 {
 	//Check arguments
-	if (argc < 4)
+	if (argc < 5)
 	{
-		std::cout << "usage: SA1LVL2RBX upload/rbx_content scale sa1lvl" << std::endl;
+		std::cout << "usage: SA1LVL2RBX upload/rbx_content scale sa1lvl texlist_index" << std::endl;
 		return 0;
 	}
 
@@ -370,6 +386,60 @@ int main(int argc, char *argv[])
 	float scale = strtof(argv[2], nullptr);
 
 	std::string path_lvl = argv[3];
+
+	std::string path_texlist = argv[4];
+	std::string path_texbase;
+
+	auto path_base_cut = path_texlist.find_last_of("/\\");
+	if (path_base_cut != std::string::npos)
+		path_texbase = path_texlist.substr(0, path_base_cut + 1);
+
+	//Read texlist
+	std::ifstream stream_texlist(path_texlist);
+	if (!stream_texlist.is_open())
+	{
+		std::cout << "Failed to open texlist index " << path_texlist << std::endl;
+		return 1;
+	}
+
+	std::vector<SALVL_Texture> textures;
+
+	while (!stream_texlist.eof())
+	{
+		//Read line
+		std::string line;
+		std::getline(stream_texlist, line);
+
+		//Read texture path
+		SALVL_Texture texture;
+		
+		auto delim_pathstart = line.find_first_of(",");
+		auto delim_pathend = line.find_last_of(",");
+
+		if (delim_pathstart != std::string::npos && delim_pathend != std::string::npos)
+		{
+			texture.name = line.substr(delim_pathstart + 1, (delim_pathend - delim_pathstart) - 1);
+			
+			//Read resolution
+			std::string res = line.substr(delim_pathend + 1);
+			auto delim_res = res.find_first_of("x");
+			if (delim_res != std::string::npos)
+			{
+				texture.xres = std::stoi(res.substr(0, delim_res));
+				texture.yres = std::stoi(res.substr(delim_res + 1));
+				
+				//Copy file
+				std::ifstream tex_src(path_texbase + texture.name, std::ios::binary);
+				std::ofstream tex_dst(path_content + "salvl/" + texture.name, std::ios::binary);
+				tex_dst << tex_src.rdbuf();
+
+				texture.path = "rbxasset://salvl/" + texture.name;
+
+				//Push to texture list
+				textures.push_back(texture);
+			}
+		}
+	}
 
 	//Read landtable from LVL file
 	std::ifstream stream_lvl(path_lvl, std::ios::binary);
@@ -440,12 +510,23 @@ int main(int argc, char *argv[])
 					NJS_MESHSET_SADX *meshset = model->meshsets;
 					for (Uint16 k = 0; k < model->nbMeshset; k++, meshset++)
 					{
-						Uint16 material = meshset->type_matId & 0x3FFF;
-						Uint16 polytype = meshset->type_matId >> 14;
-
 						//Create mesh part
+						Uint16 material = meshset->type_matId & 0x3FFF;
 						SALVL_MeshPart *meshpart = &mesh.parts[material];
 
+						NJS_MATERIAL *nmaterial;
+						if (material < model->nbMat)
+							nmaterial = &model->mats[material];
+						else
+							nmaterial = nullptr;
+
+						if (nmaterial != nullptr)
+						{
+							meshpart->texture = (nmaterial->attrflags & NJD_FLAG_USE_TEXTURE) ? textures[nmaterial->attr_texId].path : "";
+							meshpart->diffuse = ((Uint32)nmaterial->diffuse.argb.r << 16) | ((Uint32)nmaterial->diffuse.argb.g << 8) | ((Uint32)nmaterial->diffuse.argb.b);
+						}
+
+						Uint16 polytype = meshset->type_matId >> 14;
 						Sint16 *indp = meshset->meshes;
 						for (Uint16 p = 0, j = 0; p < meshset->nbMesh; p++)
 						{
@@ -453,40 +534,42 @@ int main(int argc, char *argv[])
 							{
 								case 0: //Triangles
 								{
-									meshpart->IndexVertex(model, meshset, indp[0], j++);
-									meshpart->IndexVertex(model, meshset, indp[1], j++);
-									meshpart->IndexVertex(model, meshset, indp[2], j++);
+									meshpart->IndexVertex(model, meshset, indp[0], j + 0);
+									meshpart->IndexVertex(model, meshset, indp[1], j + 1);
+									meshpart->IndexVertex(model, meshset, indp[2], j + 2);
 									indp += 3;
+									j += 3;
 									break;
 								}
 								case 1: //Quads
 								{
-									meshpart->IndexVertex(model, meshset, indp[0], j++);
-									meshpart->IndexVertex(model, meshset, indp[1], j++);
-									meshpart->IndexVertex(model, meshset, indp[2], j++);
-									meshpart->IndexVertex(model, meshset, indp[2], j++);
-									meshpart->IndexVertex(model, meshset, indp[1], j++);
-									meshpart->IndexVertex(model, meshset, indp[3], j++);
+									meshpart->IndexVertex(model, meshset, indp[0], j + 0);
+									meshpart->IndexVertex(model, meshset, indp[1], j + 1);
+									meshpart->IndexVertex(model, meshset, indp[2], j + 2);
+									meshpart->IndexVertex(model, meshset, indp[2], j + 2);
+									meshpart->IndexVertex(model, meshset, indp[1], j + 1);
+									meshpart->IndexVertex(model, meshset, indp[3], j + 3);
 									indp += 4;
+									j += 4;
 									break;
 								}
 								case 3: //Strip
 								{
 									Uint16 first = *indp++;
-									for (Uint16 l = 0; l < (first & 0x7FFF) - 2; l++)
+									for (Uint16 l = 0; l < (first & 0x7FFF) - 2; l++, j++)
 									{
 										first ^= 0x8000;
 										if (first & 0x8000)
 										{
-											meshpart->IndexVertex(model, meshset, indp[l + 0], j++);
-											meshpart->IndexVertex(model, meshset, indp[l + 1], j++);
-											meshpart->IndexVertex(model, meshset, indp[l + 2], j++);
+											meshpart->IndexVertex(model, meshset, indp[l + 0], j + 0);
+											meshpart->IndexVertex(model, meshset, indp[l + 1], j + 1);
+											meshpart->IndexVertex(model, meshset, indp[l + 2], j + 2);
 										}
 										else
 										{
-											meshpart->IndexVertex(model, meshset, indp[l + 1], j++);
-											meshpart->IndexVertex(model, meshset, indp[l + 0], j++);
-											meshpart->IndexVertex(model, meshset, indp[l + 2], j++);
+											meshpart->IndexVertex(model, meshset, indp[l + 1], j + 1);
+											meshpart->IndexVertex(model, meshset, indp[l + 0], j + 0);
+											meshpart->IndexVertex(model, meshset, indp[l + 2], j + 2);
 										}
 									}
 									indp += (first & 0x7FFF);
@@ -719,8 +802,10 @@ int main(int argc, char *argv[])
 									stream_rbxmx << "<Z>" << i.meshpart->size.z << "</Z>" << std::endl;
 								stream_rbxmx << "</Vector3>" << std::endl;
 								stream_rbxmx << "<Content name=\"MeshID\"><url>" << i.meshpart->path << "</url></Content>" << std::endl;
+								stream_rbxmx << "<Content name=\"TextureID\"><url>" << i.meshpart->texture << "</url></Content>" << std::endl;
 								stream_rbxmx << "<SharedString name=\"PhysicalConfigData\">" << csgmesh->enc_hash << "</SharedString>" << std::endl;
 								stream_rbxmx << "<float name=\"Transparency\">" << ((i.surf_flag & SA1LVL_SURFFLAG_VISIBLE) ? 0.0f : 1.0f) << "</float>" << std::endl;
+								stream_rbxmx << "<Color3uint8 name = \"Color3uint8\">" << i.meshpart->diffuse << "</Color3uint8>" << std::endl;
 							stream_rbxmx << "</Properties>" << std::endl;
 						stream_rbxmx << "</Item>" << std::endl;
 					}
@@ -763,7 +848,9 @@ int main(int argc, char *argv[])
 									stream_rbxmx << "<Z>" << i.meshpart->size.z << "</Z>" << std::endl;
 								stream_rbxmx << "</Vector3>" << std::endl;
 								stream_rbxmx << "<Content name=\"MeshID\"><url>" << i.meshpart->path << "</url></Content>" << std::endl;
+								stream_rbxmx << "<Content name=\"TextureID\"><url>" << i.meshpart->texture << "</url></Content>" << std::endl;
 								stream_rbxmx << "<float name=\"Transparency\">" << ((i.surf_flag & SA1LVL_SURFFLAG_VISIBLE) ? 0.0f : 1.0f) << "</float>" << std::endl;
+								stream_rbxmx << "<Color3uint8 name = \"Color3uint8\">" << i.meshpart->diffuse << "</Color3uint8>" << std::endl;
 							stream_rbxmx << "</Properties>" << std::endl;
 						stream_rbxmx << "</Item>" << std::endl;
 					}

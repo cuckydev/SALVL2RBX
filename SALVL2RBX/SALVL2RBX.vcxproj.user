@@ -3,11 +3,11 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LocalDebuggerCommand>$(TargetPath)</LocalDebuggerCommand>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>"C:/Users/regan/AppData/Roaming/RbxModManager/ModFiles/content" 0.455 "C:/SALVL/BEACH01.sa1lvl"</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>"C:/Users/regan/AppData/Roaming/RbxModManager/ModFiles/content" 0.455 "C:/SALVL/HIGHWAY03_DC.sa1lvl" "C:/SALVL/HIGHWAY03_DC.PVM/index.txt"</LocalDebuggerCommandArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LocalDebuggerCommand>$(TargetPath)</LocalDebuggerCommand>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>"C:/Users/regan/AppData/Roaming/RbxModManager/ModFiles/content" 0.455 "C:/SALVL/BEACH01.sa1lvl"</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>"C:/Users/regan/AppData/Roaming/RbxModManager/ModFiles/content" 0.455 "C:/SALVL/HIGHWAY03_DC.sa1lvl" "C:/SALVL/HIGHWAY03_DC.PVM/index.txt"</LocalDebuggerCommandArguments>
   </PropertyGroup>
 </Project>
