@@ -5,6 +5,7 @@
 #include <limits>
 #include <set>
 #include <algorithm>
+#include <regex>
 
 #include "LandTableInfo.h"
 
@@ -388,6 +389,8 @@ int main(int argc, char *argv[])
 
 	//Get content folder
 	std::string path_content = argv[1];
+
+	std::string roblosecurity;
 	bool upload = false;
 
 	if (path_content == "upload")
@@ -406,6 +409,42 @@ int main(int argc, char *argv[])
 		std::cin >> pressed;
 		if (pressed != 'y' || pressed == 'Y')
 			return 0;
+
+		//Get ROBLOSECURITY from Roblox Studio registry
+		HKEY studio_key;
+		if (RegOpenKeyEx(HKEY_CURRENT_USER, TEXT("SOFTWARE\\Roblox\\RobloxStudioBrowser\\roblox.com"), 0, KEY_READ, &studio_key) == ERROR_SUCCESS)
+		{
+			//Read string from registry
+			char value[1024];
+			DWORD value_size = sizeof(value);
+
+			LSTATUS result = RegQueryValueExA(studio_key, ".ROBLOSECURITY", 0, NULL, (LPBYTE)value, &value_size);
+			RegCloseKey(studio_key);
+
+			if (result != ERROR_SUCCESS)
+			{
+				std::cout << "Failed to get value of .ROBLOSECURITY" << std::endl;
+				return 1;
+			}
+
+			//Get actual cookie via regex
+			std::string roblosecurity_value = std::string(value);
+			std::smatch roblosecurity_match;
+			std::regex roblosecurity_regex("COOK::<([^>]*)>");
+
+			if (std::regex_search(roblosecurity_value, roblosecurity_match, roblosecurity_regex) == false || roblosecurity_match.size() < 2)
+			{
+				std::cout << "Failed to regex vlaue of .ROBLOSECURITY" << std::endl;
+				return 1;
+			}
+
+			roblosecurity = roblosecurity_match[1].str();
+		}
+		else
+		{
+			std::cout << "Failed to find Roblox Studio registry. Do you have Roblox Studio installed?" << std::endl;
+			return 1;
+		}
 	}
 	else
 	{
@@ -430,6 +469,8 @@ int main(int argc, char *argv[])
 		path_texbase = path_texlist.substr(0, path_base_cut + 1);
 
 	//Read texlist
+	std::cout << "Reading texlist..." << std::endl;
+
 	std::ifstream stream_texlist(path_texlist);
 	if (!stream_texlist.is_open())
 	{
@@ -454,6 +495,8 @@ int main(int argc, char *argv[])
 		if (delim_pathstart != std::string::npos && delim_pathend != std::string::npos)
 		{
 			texture.name = line.substr(delim_pathstart + 1, (delim_pathend - delim_pathstart) - 1);
+			std::cout << "  " << texture.name << std::endl;
+
 			texture.name_fu = "fu_" + texture.name;
 			texture.name_fv = "fv_" + texture.name;
 			texture.name_fuv = "fuv_" + texture.name;
@@ -532,6 +575,8 @@ int main(int argc, char *argv[])
 	}
 
 	//Read landtable from LVL file
+	std::cout << "Converting LVL " << path_lvl << " to landtable..." << std::endl;
+
 	std::ifstream stream_lvl(path_lvl, std::ios::binary);
 	if (!stream_lvl.is_open())
 	{
@@ -549,6 +594,8 @@ int main(int argc, char *argv[])
 	}
 
 	//Read COLs
+	std::cout << "Reading COLs..." << std::endl;
+
 	std::unordered_map<NJS_MODEL_SADX*, SALVL_Mesh> meshes;
 	std::vector<SALVL_MeshInstance> meshinstances;
 
@@ -686,6 +733,7 @@ int main(int argc, char *argv[])
 	}
 	
 	//Write RBX meshes
+	std::cout << "Writing RBX meshes..." << std::endl;
 	unsigned int mesh_ind = 0;
 	for (auto &i : meshes)
 	{
@@ -699,7 +747,9 @@ int main(int argc, char *argv[])
 			meshpart->AABBCorrect();
 
 			//Open mesh file
-			meshpart->name = std::to_string(mesh_ind) + ".msh";
+			meshpart->name = std::to_string(mesh_ind) + ".mesh";
+			std::cout << "  " << meshpart->name << std::endl;
+
 			meshpart->ind = mesh_ind;
 
 			std::string path_mesh = path_content + "salvl/" + meshpart->name;
@@ -708,7 +758,7 @@ int main(int argc, char *argv[])
 			std::ofstream stream_mesh(path_mesh, std::ios::binary);
 			if (!stream_mesh.is_open())
 			{
-				std::cout << "Failed to open MSH " << path_mesh << std::endl;
+				std::cout << "Failed to open mesh " << path_mesh << std::endl;
 				return 1;
 			}
 			stream_mesh.write("version 2.00\n", 13);
@@ -742,14 +792,17 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	//Upload content to Roblox
+	//Get URLs of assets
 	if (upload)
 	{
-
+		//Upload content to Roblox
+		std::cout << "Uploading content to Roblox..." << std::endl;
 	}
 	else
 	{
 		//Get rbxasset URLs
+		std::cout << "Getting rbxasset:// URLs..." << std::endl;
+
 		for (auto &i : meshes)
 			for (auto &j : i.second.parts)
 				j.second.url = "rbxasset://salvl/" + j.second.name;
@@ -763,6 +816,8 @@ int main(int argc, char *argv[])
 	}
 
 	//Get where meshes should be placed
+	std::cout << "Placing MeshPart instances..." << std::endl;
+
 	std::vector<SALVL_MeshPartInstance> mesh_collision;
 	std::vector<SALVL_MeshPartInstance> mesh_visual;
 
@@ -798,6 +853,8 @@ int main(int argc, char *argv[])
 	}
 
 	//Write RBXMX
+	std::cout << "Writing RBXMX " << path_rbxmx << "..." << std::endl;
+
 	std::unordered_map<SALVL_MeshPart*, SALVL_CSGMesh> meshpart_csgmesh;
 
 	std::ofstream stream_rbxmx(path_rbxmx);
@@ -1037,5 +1094,6 @@ int main(int argc, char *argv[])
 		stream_rbxmx << "</SharedStrings>" << std::endl;
 	stream_rbxmx << "</roblox>" << std::endl;
 
+	std::cout << "Complete!" << std::endl;
 	return 0;
 }
