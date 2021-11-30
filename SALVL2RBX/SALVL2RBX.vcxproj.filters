@@ -22,7 +22,10 @@
     <Filter Include="Header Files\libmodutils">
       <UniqueIdentifier>{192b6334-0a8e-44e5-8d26-55a2c5933f91}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\SA1LVL2RBX">
+    <Filter Include="Header Files\SALVL2RBX">
+      <UniqueIdentifier>{b2baaecc-8e60-477a-bb91-5b077f47f4a0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\SALVL2RBX">
       <UniqueIdentifier>{3050fb34-909f-4ecb-8fb7-1b8ca54d39fd}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -49,7 +52,7 @@
       <Filter>Source Files\libmodutils</Filter>
     </ClCompile>
     <ClCompile Include="Main.cpp">
-      <Filter>Source Files\SA1LVL2RBX</Filter>
+      <Filter>Source Files\SALVL2RBX</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -115,6 +118,9 @@
     </ClInclude>
     <ClInclude Include="..\sadx-mod-loader\libmodutils\Trampoline.h">
       <Filter>Header Files\libmodutils</Filter>
+    </ClInclude>
+    <ClInclude Include="md5.h">
+      <Filter>Header Files\SALVL2RBX</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -3,6 +3,7 @@
 #include <vector>
 #include <cmath>
 #include <limits>
+#include <algorithm>
 
 #include "LandTableInfo.h"
 
@@ -29,7 +30,7 @@ typedef uint32_t SA1LVL_SurfFlag;
 #define SA1LVL_SURFFLAG_FOOTPRINTS             0x100000
 #define SA1LVL_SURFFLAG_VISIBLE                0x80000000
 
-//Intermediate types
+//SALVL types
 struct SALVL_Vertex
 {
 	NJS_VECTOR pos = {};
@@ -56,12 +57,9 @@ struct SALVL_Vertex
 
 struct SALVL_MeshPart
 {
+	//Mesh data
 	std::vector<SALVL_Vertex> vertex;
 	std::vector<Sint16> indices;
-
-	unsigned int ind = 0;
-	NJS_VECTOR aabb_correct = {};
-	NJS_VECTOR size = {};
 
 	Uint16 AddVertex(SALVL_Vertex &adder)
 	{
@@ -93,6 +91,14 @@ struct SALVL_MeshPart
 		//Add vertex and push index
 		indices.push_back(AddVertex(vertex));
 	}
+
+	//File information
+	unsigned int ind = 0;
+	std::string path;
+
+	//AABB
+	NJS_VECTOR aabb_correct = {};
+	NJS_VECTOR size = {};
 
 	void AABBCorrect()
 	{
@@ -147,28 +153,93 @@ struct SALVL_MeshPart
 
 struct SALVL_Mesh
 {
+	//Contained mesh parts
 	std::unordered_map<Uint16, SALVL_MeshPart> parts;
 };
 
 struct SALVL_MeshInstance
 {
+	//Referenced mesh
 	SALVL_Mesh *mesh = nullptr;
 	
+	//Positioning
 	NJS_MATRIX matrix = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
 	NJS_VECTOR pos = {};
+
+	//Flags
 	SA1LVL_SurfFlag surf_flag = 0;
 };
 
 struct SALVL_MeshPartInstance
 {
+	//Referenced mesh part
 	SALVL_MeshPart *meshpart = nullptr;
 
-	NJS_MATRIX matrix = { 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f };
+	//Positioning
+	NJS_MATRIX matrix = {1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
 	NJS_VECTOR pos = {};
 
-	float transparency;
+	//Flags
+	SA1LVL_SurfFlag surf_flag = 0;
 };
 
+#include <wincrypt.h> //ugh
+#ifndef CRYPT_STRING_BASE64
+#define CRYPT_STRING_BASE64 1 //Shut up IntelliSense
+#endif
+#include "md5.h"
+
+struct SALVL_CSGMesh
+{
+	//Encoded data
+	std::string enc_base64; //Base64 encoded
+	std::string enc_hash; //MD5 hash
+
+	std::string Base64(Uint8 *data, size_t size)
+	{
+		//Encode to C string
+		DWORD base64_len = 0;
+		if (CryptBinaryToStringA(data, size, CRYPT_STRING_BASE64, NULL, &base64_len))
+		{
+			LPSTR base64_str = (LPSTR)malloc(base64_len);
+			if (base64_str != nullptr && CryptBinaryToStringA(data, size, CRYPT_STRING_BASE64, base64_str, &base64_len))
+			{
+				//Get encoded string
+				std::string resultado = base64_str;
+				free(base64_str);
+				resultado.erase(std::remove(resultado.begin(), resultado.end(), '\r'), resultado.end());
+				resultado.erase(std::remove(resultado.begin(), resultado.end(), '\n'), resultado.end());
+
+				//Break line appropriately
+				std::string result;
+				for (int i = 0; i < resultado.size(); i += 72)
+				{
+					if (!result.empty())
+						result.push_back('\n');
+					result += resultado.substr(i, 72);
+				}
+				return result;
+			}
+		}
+		return "";
+	}
+
+	void Encode(std::vector<Uint8> &data)
+	{
+		//Encode to Base64 (UGH)
+		enc_base64 = Base64(data.data(), data.size());
+
+		//Encode to MD5 then to Base64
+		MD5 md5;
+		md5.Init();
+		md5.Update((unsigned char*)enc_base64.c_str(), enc_base64.size());
+		md5.Final();
+
+		enc_hash = Base64(md5.digestRaw, 16);
+	}
+};
+
+//Ninja reimplementation
 void Reimp_njRotateX(NJS_MATRIX cframe, Angle x)
 {
 	//Calculate the sine and cosine of our angle
@@ -235,22 +306,68 @@ void Reimp_njRotateZ(float *cframe, Angle x)
 	cframe[M13] = cos * cframe[M13] - m03 * sin;
 }
 
+//File writes
+void Write16(std::ofstream &stream, Uint16 x)
+{
+	stream.put(x);
+	stream.put(x >> 8);
+}
+void Write32(std::ofstream &stream, Uint32 x)
+{
+	stream.put(x);
+	stream.put(x >> 8);
+	stream.put(x >> 16);
+	stream.put(x >> 24);
+}
+void WriteFloat(std::ofstream &stream, float x)
+{
+	Write32(stream, *(Uint32*)&x);
+}
+
+template<typename T> void Push16(std::vector<T> &stream, Uint16 x)
+{
+	stream.push_back(x);
+	stream.push_back(x >> 8);
+}
+template<typename T> void Push32(std::vector<T> &stream, Uint32 x)
+{
+	stream.push_back(x);
+	stream.push_back(x >> 8);
+	stream.push_back(x >> 16);
+	stream.push_back(x >> 24);
+}
+template<typename T> void PushFloat(std::vector<T> &stream, float x)
+{
+	Push32<T>(stream, *(Uint32*)&x);
+}
+
 //Entry point
 int main(int argc, char *argv[])
 {
 	//Check arguments
 	if (argc < 4)
 	{
-		std::cout << "usage: SA1LVL2RBX rbx_content scale sa1lvl" << std::endl;
+		std::cout << "usage: SA1LVL2RBX upload/rbx_content scale sa1lvl" << std::endl;
 		return 0;
 	}
 
 	std::string path_content = argv[1];
-	if (path_content.back() != '/' && path_content.back() != '\\')
-		path_content += "/";
+	if (path_content == "upload")
+	{
+		//Upload mode, no content path
+		path_content = "";
+	}
+	else
+	{
+		//Ensure content path has slash at the end
+		if (path_content.back() != '/' && path_content.back() != '\\')
+			path_content += "/";
+	}
 
 	std::string path_rbxmx = path_content + "salvl/level.rbxmx";
+
 	float scale = strtof(argv[2], nullptr);
+
 	std::string path_lvl = argv[3];
 
 	//Read landtable from LVL file
@@ -390,24 +507,23 @@ int main(int argc, char *argv[])
 	}
 	
 	//Write RBX meshes
-	std::unordered_map<SALVL_Mesh*, unsigned int> mesh_inds;
-
 	unsigned int mesh_ind = 0;
 	for (auto &i : meshes)
 	{
 		//Write mesh parts
 		SALVL_Mesh *mesh = &i.second;
-		mesh_inds[mesh] = mesh_ind;
 
 		for (auto &j : mesh->parts)
 		{
 			//Correct meshpart AABB
 			SALVL_MeshPart *meshpart = &j.second;
-			meshpart->ind = mesh_ind;
 			meshpart->AABBCorrect();
 
 			//Open mesh file
 			std::string path_mesh = path_content + "salvl/" + std::to_string(mesh_ind) + ".msh";
+			meshpart->ind = mesh_ind;
+			meshpart->path = path_mesh;
+
 			std::ofstream stream_mesh(path_mesh, std::ios::binary);
 			if (!stream_mesh.is_open())
 			{
@@ -421,25 +537,24 @@ int main(int argc, char *argv[])
 			stream_mesh.put(0x28); //sizeof_MeshVertex
 			stream_mesh.put(0x0C); //sizeof_MeshFace
 
-			unsigned int numVerts = meshpart->vertex.size();
-			stream_mesh.write((const char*)&numVerts, 4);
-			unsigned int numFaces = meshpart->indices.size() / 3;
-			stream_mesh.write((const char*)&numFaces, 4);
+			unsigned int num_verts = meshpart->vertex.size();
+			Write32(stream_mesh, num_verts);
+			unsigned int num_faces = meshpart->indices.size() / 3;
+			Write32(stream_mesh, num_faces);
 
 			//Write vertex data
 			for (auto &k : meshpart->vertex)
 			{
-				stream_mesh.write((const char*)&k.pos, sizeof(NJS_VECTOR)); //Position
-				stream_mesh.write((const char*)&k.nor, sizeof(NJS_VECTOR)); //Normal
-				stream_mesh.write((const char*)&k.tex, sizeof(NJS_POINT2)); //Texture
+				WriteFloat(stream_mesh, k.pos.x); WriteFloat(stream_mesh, k.pos.y); WriteFloat(stream_mesh, k.pos.z); //Position
+				WriteFloat(stream_mesh, k.nor.x); WriteFloat(stream_mesh, k.nor.y); WriteFloat(stream_mesh, k.nor.z); //Normal
+				WriteFloat(stream_mesh, k.tex.x); WriteFloat(stream_mesh, k.tex.y); //Texture
 				stream_mesh.put(0x00); stream_mesh.put(0x00); stream_mesh.put(0x00); stream_mesh.put(0x00); //Tangent
 				stream_mesh.put(0xFF); stream_mesh.put(0xFF); stream_mesh.put(0xFF); stream_mesh.put(0xFF); //RGBA tint
 			}
+
+			//Write indices
 			for (auto &k : meshpart->indices)
-			{
-				unsigned int index = k;
-				stream_mesh.write((const char*)&index, 4);
-			}
+				Write32(stream_mesh, k);
 
 			//Increment mesh index
 			mesh_ind++;
@@ -459,7 +574,7 @@ int main(int argc, char *argv[])
 
 			SALVL_MeshPartInstance meshpart_instance;
 			meshpart_instance.meshpart = meshpart;
-			meshpart_instance.matrix[M00] = i.matrix[M00];
+			meshpart_instance.matrix[M00] = i.matrix[M00]; //NOTE: Flip row and columns
 			meshpart_instance.matrix[M10] = i.matrix[M01];
 			meshpart_instance.matrix[M20] = i.matrix[M02];
 			meshpart_instance.matrix[M01] = i.matrix[M10];
@@ -471,7 +586,7 @@ int main(int argc, char *argv[])
 			meshpart_instance.pos.x = i.pos.x + meshpart->aabb_correct.z * i.matrix[M20] + meshpart->aabb_correct.y * i.matrix[M10] + meshpart->aabb_correct.x * i.matrix[M00];
 			meshpart_instance.pos.y = i.pos.y + meshpart->aabb_correct.z * i.matrix[M21] + meshpart->aabb_correct.y * i.matrix[M11] + meshpart->aabb_correct.x * i.matrix[M01];
 			meshpart_instance.pos.z = i.pos.z + meshpart->aabb_correct.z * i.matrix[M22] + meshpart->aabb_correct.y * i.matrix[M12] + meshpart->aabb_correct.x * i.matrix[M02];
-			meshpart_instance.transparency = (i.surf_flag & SA1LVL_SURFFLAG_VISIBLE) ? 0.0f : 1.0f;
+			meshpart_instance.surf_flag = i.surf_flag;
 
 			//Add to appropriate list
 			if (i.surf_flag & SA1LVL_SURFFLAG_SOLID)
@@ -482,6 +597,8 @@ int main(int argc, char *argv[])
 	}
 
 	//Write RBXMX
+	std::unordered_map<SALVL_MeshPart*, SALVL_CSGMesh> meshpart_csgmesh;
+
 	std::ofstream stream_rbxmx(path_rbxmx);
 	if (!stream_rbxmx.is_open())
 	{
@@ -489,21 +606,81 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
+	//ROBLOX model tree
 	stream_rbxmx << "<roblox xmlns:xmime=\"http://www.w3.org/2005/05/xmlmime\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:noNamespaceSchemaLocation=\"http://www.roblox.com/roblox.xsd\" version=\"4\">" << std::endl;
+		//Level folder
 		stream_rbxmx << "<Item class = \"Folder\">" << std::endl;
 			stream_rbxmx << "<Properties>" << std::endl;
 				stream_rbxmx << "<string name=\"Name\">Level</string>" << std::endl;
 			stream_rbxmx << "</Properties>" << std::endl;
+			//Map folder
 			stream_rbxmx << "<Item class = \"Folder\">" << std::endl;
 				stream_rbxmx << "<Properties>" << std::endl;
 					stream_rbxmx << "<string name=\"Name\">Map</string>" << std::endl;
 				stream_rbxmx << "</Properties>" << std::endl;
+				//Collision Folder
 				stream_rbxmx << "<Item class = \"Folder\">" << std::endl;
 					stream_rbxmx << "<Properties>" << std::endl;
 						stream_rbxmx << "<string name=\"Name\">Collision</string>" << std::endl;
 					stream_rbxmx << "</Properties>" << std::endl;
 					for (auto &i : mesh_collision)
 					{
+						//Calculate CSG mesh
+						auto csgmeshind = meshpart_csgmesh.find(i.meshpart);
+						if (csgmeshind == meshpart_csgmesh.end())
+						{
+							//Generate CSG mesh data
+							std::vector<Uint8> csgmesh_data;
+							csgmesh_data.push_back('C'); csgmesh_data.push_back('S'); csgmesh_data.push_back('G'); csgmesh_data.push_back('M'); csgmesh_data.push_back('S'); csgmesh_data.push_back('H');
+							Push32<Uint8>(csgmesh_data, 3);
+
+							//Write sub-meshes
+							for (int j = 0; j < i.meshpart->indices.size(); j += 3)
+							{
+								//Get vertices
+								SALVL_Vertex *v0 = &i.meshpart->vertex[i.meshpart->indices[j + 0]];
+								SALVL_Vertex *v1 = &i.meshpart->vertex[i.meshpart->indices[j + 1]];
+								SALVL_Vertex *v2 = &i.meshpart->vertex[i.meshpart->indices[j + 2]];
+
+								//Write dummied out header
+								Push32(csgmesh_data, 16); //sizeof_TriIndices
+								csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); //TriIndices[16]
+								csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00);
+								csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00);
+								csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00);
+
+								Push32(csgmesh_data, 16); //sizeof_TransformOffsets
+								csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); //TransformOffsets[16]
+								csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00);
+								csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x80); csgmesh_data.push_back(0x3F);
+
+								//Write vertices
+								Push32(csgmesh_data, 6); //numCoords
+								Push32(csgmesh_data, 4); //sizeof_float
+
+								PushFloat(csgmesh_data, v0->pos.x); PushFloat(csgmesh_data, v0->pos.y); PushFloat(csgmesh_data, v0->pos.z); //Vertex 0
+								PushFloat(csgmesh_data, v1->pos.x); PushFloat(csgmesh_data, v1->pos.y); PushFloat(csgmesh_data, v1->pos.z); //Vertex 1
+								PushFloat(csgmesh_data, v2->pos.x); PushFloat(csgmesh_data, v2->pos.y); PushFloat(csgmesh_data, v2->pos.z); //Vertex 2
+
+								PushFloat(csgmesh_data, v0->pos.x - v0->nor.x * 0.125f); PushFloat(csgmesh_data, v0->pos.y - v0->nor.y * 0.125f); PushFloat(csgmesh_data, v0->pos.z - v0->nor.z * 0.125f); //Vertex 3
+								PushFloat(csgmesh_data, v1->pos.x - v1->nor.x * 0.125f); PushFloat(csgmesh_data, v1->pos.y - v1->nor.y * 0.125f); PushFloat(csgmesh_data, v0->pos.z - v1->nor.z * 0.125f); //Vertex 4
+								PushFloat(csgmesh_data, v2->pos.x - v2->nor.x * 0.125f); PushFloat(csgmesh_data, v2->pos.y - v2->nor.y * 0.125f); PushFloat(csgmesh_data, v0->pos.z - v2->nor.z * 0.125f); //Vertex 5
+
+								//Write indices
+								Push32(csgmesh_data, 6); //numIndices
+								Push32(csgmesh_data, 0); Push32(csgmesh_data, 1); Push32(csgmesh_data, 2); //Triangle 0 (front)
+								Push32(csgmesh_data, 5); Push32(csgmesh_data, 4); Push32(csgmesh_data, 3); //Triangle 1 (back)
+							}
+
+							//Create new mesh, encode, and push to map
+							SALVL_CSGMesh csgmesh;
+							csgmesh.Encode(csgmesh_data);
+							meshpart_csgmesh[i.meshpart] = csgmesh;
+						}
+
+						SALVL_CSGMesh *csgmesh = &meshpart_csgmesh[i.meshpart];
+
+						//Write mesh file
 						stream_rbxmx << "<Item class = \"MeshPart\">" << std::endl;
 							stream_rbxmx << "<Properties>" << std::endl;
 								stream_rbxmx << "<string name=\"Name\">MeshPart</string>" << std::endl;
@@ -536,51 +713,63 @@ int main(int argc, char *argv[])
 								stream_rbxmx << "</Vector3>" << std::endl;
 								stream_rbxmx << "<Content name=\"MeshID\"><url>rbxasset://salvl/" << i.meshpart->ind << ".msh</url></Content>" << std::endl;
 								stream_rbxmx << "<Content name=\"MeshId\"><url>rbxasset://salvl/" << i.meshpart->ind << ".msh</url></Content>" << std::endl;
-								stream_rbxmx << "<float name=\"Transparency\">" << i.transparency << "</float>" << std::endl;
+								stream_rbxmx << "<SharedString name=\"PhysicalConfigData\">" << csgmesh->enc_hash << "</SharedString>" << std::endl;
+								stream_rbxmx << "<float name=\"Transparency\">" << ((i.surf_flag & SA1LVL_SURFFLAG_VISIBLE) ? 0.0f : 1.0f) << "</float>" << std::endl;
 							stream_rbxmx << "</Properties>" << std::endl;
 						stream_rbxmx << "</Item>" << std::endl;
 					}
 				stream_rbxmx << "</Item>" << std::endl;
-				for (auto &i : mesh_visual)
-				{
-					stream_rbxmx << "<Item class = \"MeshPart\">" << std::endl;
-						stream_rbxmx << "<Properties>" << std::endl;
-							stream_rbxmx << "<string name=\"Name\">MeshPart</string>" << std::endl;
-							stream_rbxmx << "<bool name=\"Anchored\">true</bool>" << std::endl;
-							stream_rbxmx << "<bool name=\"CanCollide\">false</bool>" << std::endl;
-							stream_rbxmx << "<bool name=\"CanTouch\">false</bool>" << std::endl;
-							stream_rbxmx << "<CoordinateFrame name = \"CFrame\">" << std::endl;
-								stream_rbxmx << "<X>" << i.pos.x * scale << "</X>" << std::endl;
-								stream_rbxmx << "<Y>" << i.pos.y * scale << "</Y>" << std::endl;
-								stream_rbxmx << "<Z>" << i.pos.z * scale << "</Z>" << std::endl;
-								stream_rbxmx << "<R00>" << i.matrix[M00] << "</R00>" << std::endl;
-								stream_rbxmx << "<R01>" << i.matrix[M01] << "</R01>" << std::endl;
-								stream_rbxmx << "<R02>" << i.matrix[M02] << "</R02>" << std::endl;
-								stream_rbxmx << "<R10>" << i.matrix[M10] << "</R10>" << std::endl;
-								stream_rbxmx << "<R11>" << i.matrix[M11] << "</R11>" << std::endl;
-								stream_rbxmx << "<R12>" << i.matrix[M12] << "</R12>" << std::endl;
-								stream_rbxmx << "<R20>" << i.matrix[M20] << "</R20>" << std::endl;
-								stream_rbxmx << "<R21>" << i.matrix[M21] << "</R21>" << std::endl;
-								stream_rbxmx << "<R22>" << i.matrix[M22] << "</R22>" << std::endl;
-							stream_rbxmx << "</CoordinateFrame>" << std::endl;
-							stream_rbxmx << "<Vector3 name = \"size\">" << std::endl;
-								stream_rbxmx << "<X>" << i.meshpart->size.x * scale << "</X>" << std::endl;
-								stream_rbxmx << "<Y>" << i.meshpart->size.y * scale << "</Y>" << std::endl;
-								stream_rbxmx << "<Z>" << i.meshpart->size.z * scale << "</Z>" << std::endl;
-							stream_rbxmx << "</Vector3>" << std::endl;
-							stream_rbxmx << "<Vector3 name = \"InitialSize\">" << std::endl;
-								stream_rbxmx << "<X>" << i.meshpart->size.x << "</X>" << std::endl;
-								stream_rbxmx << "<Y>" << i.meshpart->size.y << "</Y>" << std::endl;
-								stream_rbxmx << "<Z>" << i.meshpart->size.z << "</Z>" << std::endl;
-							stream_rbxmx << "</Vector3>" << std::endl;
-							stream_rbxmx << "<Content name=\"MeshID\"><url>rbxasset://salvl/" << i.meshpart->ind << ".msh</url></Content>" << std::endl;
-							stream_rbxmx << "<Content name=\"MeshId\"><url>rbxasset://salvl/" << i.meshpart->ind << ".msh</url></Content>" << std::endl;
-							stream_rbxmx << "<float name=\"Transparency\">" << i.transparency << "</float>" << std::endl;
-						stream_rbxmx << "</Properties>" << std::endl;
-					stream_rbxmx << "</Item>" << std::endl;
-				}
+				//Visual Folder
+				stream_rbxmx << "<Item class = \"Folder\">" << std::endl;
+					stream_rbxmx << "<Properties>" << std::endl;
+						stream_rbxmx << "<string name=\"Name\">Visual</string>" << std::endl;
+					stream_rbxmx << "</Properties>" << std::endl;
+					for (auto &i : mesh_visual)
+					{
+						stream_rbxmx << "<Item class = \"MeshPart\">" << std::endl;
+							stream_rbxmx << "<Properties>" << std::endl;
+								stream_rbxmx << "<string name=\"Name\">MeshPart</string>" << std::endl;
+								stream_rbxmx << "<bool name=\"Anchored\">true</bool>" << std::endl;
+								stream_rbxmx << "<bool name=\"CanCollide\">false</bool>" << std::endl;
+								stream_rbxmx << "<bool name=\"CanTouch\">false</bool>" << std::endl;
+								stream_rbxmx << "<CoordinateFrame name = \"CFrame\">" << std::endl;
+									stream_rbxmx << "<X>" << i.pos.x * scale << "</X>" << std::endl;
+									stream_rbxmx << "<Y>" << i.pos.y * scale << "</Y>" << std::endl;
+									stream_rbxmx << "<Z>" << i.pos.z * scale << "</Z>" << std::endl;
+									stream_rbxmx << "<R00>" << i.matrix[M00] << "</R00>" << std::endl;
+									stream_rbxmx << "<R01>" << i.matrix[M01] << "</R01>" << std::endl;
+									stream_rbxmx << "<R02>" << i.matrix[M02] << "</R02>" << std::endl;
+									stream_rbxmx << "<R10>" << i.matrix[M10] << "</R10>" << std::endl;
+									stream_rbxmx << "<R11>" << i.matrix[M11] << "</R11>" << std::endl;
+									stream_rbxmx << "<R12>" << i.matrix[M12] << "</R12>" << std::endl;
+									stream_rbxmx << "<R20>" << i.matrix[M20] << "</R20>" << std::endl;
+									stream_rbxmx << "<R21>" << i.matrix[M21] << "</R21>" << std::endl;
+									stream_rbxmx << "<R22>" << i.matrix[M22] << "</R22>" << std::endl;
+								stream_rbxmx << "</CoordinateFrame>" << std::endl;
+								stream_rbxmx << "<Vector3 name = \"size\">" << std::endl;
+									stream_rbxmx << "<X>" << i.meshpart->size.x * scale << "</X>" << std::endl;
+									stream_rbxmx << "<Y>" << i.meshpart->size.y * scale << "</Y>" << std::endl;
+									stream_rbxmx << "<Z>" << i.meshpart->size.z * scale << "</Z>" << std::endl;
+								stream_rbxmx << "</Vector3>" << std::endl;
+								stream_rbxmx << "<Vector3 name = \"InitialSize\">" << std::endl;
+									stream_rbxmx << "<X>" << i.meshpart->size.x << "</X>" << std::endl;
+									stream_rbxmx << "<Y>" << i.meshpart->size.y << "</Y>" << std::endl;
+									stream_rbxmx << "<Z>" << i.meshpart->size.z << "</Z>" << std::endl;
+								stream_rbxmx << "</Vector3>" << std::endl;
+								stream_rbxmx << "<Content name=\"MeshID\"><url>rbxasset://salvl/" << i.meshpart->ind << ".msh</url></Content>" << std::endl;
+								stream_rbxmx << "<Content name=\"MeshId\"><url>rbxasset://salvl/" << i.meshpart->ind << ".msh</url></Content>" << std::endl;
+								stream_rbxmx << "<float name=\"Transparency\">" << ((i.surf_flag & SA1LVL_SURFFLAG_VISIBLE) ? 0.0f : 1.0f) << "</float>" << std::endl;
+							stream_rbxmx << "</Properties>" << std::endl;
+						stream_rbxmx << "</Item>" << std::endl;
+					}
+				stream_rbxmx << "</Item>" << std::endl;
 			stream_rbxmx << "</Item>" << std::endl;
 		stream_rbxmx << "</Item>" << std::endl;
+		//Shared Strings (CSGMesh hashes)
+		stream_rbxmx << "<SharedStrings>" << std::endl;
+		for (auto &i : meshpart_csgmesh)
+			stream_rbxmx << "<SharedString md5=\"" << i.second.enc_hash << "\">" << i.second.enc_base64 << "</SharedString>" << std::endl;
+		stream_rbxmx << "</SharedStrings>" << std::endl;
 	stream_rbxmx << "</roblox>" << std::endl;
 
 	return 0;
