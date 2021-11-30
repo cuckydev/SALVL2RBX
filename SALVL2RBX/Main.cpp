@@ -372,7 +372,7 @@ int main(int argc, char *argv[])
 	if (path_content == "upload")
 	{
 		//Upload mode, no content path
-		path_content = "";
+		path_content = "salvl/";
 	}
 	else
 	{
@@ -480,15 +480,15 @@ int main(int argc, char *argv[])
 
 				if (object->evalflags & SALVL_OBJFLAG_ROTATE_XYZ)
 				{
-					Reimp_njRotateX(meshinstance.matrix, object->ang[0]);
-					Reimp_njRotateY(meshinstance.matrix, object->ang[1]);
 					Reimp_njRotateZ(meshinstance.matrix, object->ang[2]);
+					Reimp_njRotateY(meshinstance.matrix, object->ang[1]);
+					Reimp_njRotateX(meshinstance.matrix, object->ang[0]);
 				}
 				else
 				{
-					Reimp_njRotateZ(meshinstance.matrix, object->ang[2]);
-					Reimp_njRotateX(meshinstance.matrix, object->ang[0]);
 					Reimp_njRotateY(meshinstance.matrix, object->ang[1]);
+					Reimp_njRotateX(meshinstance.matrix, object->ang[0]);
+					Reimp_njRotateZ(meshinstance.matrix, object->ang[2]);
 				}
 				
 				meshinstance.pos.x = object->pos[0];
