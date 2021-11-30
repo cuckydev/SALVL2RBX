@@ -8,6 +8,12 @@
 
 #include "LandTableInfo.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+
 //SA1 types
 #define SALVL_OBJFLAG_NO_POSITION 0x01
 #define SALVL_OBJFLAG_NO_ROTATE   0x02
@@ -32,6 +38,15 @@ typedef uint32_t SA1LVL_SurfFlag;
 #define SA1LVL_SURFFLAG_VISIBLE                0x80000000
 
 //SALVL types
+struct SALVL_Texture
+{
+	//Texture information
+	std::string name, name_fu, name_fv, name_fuv;
+	std::string path, path_fu, path_fv, path_fuv;
+	std::string url, url_fu, url_fv, url_fuv;
+	int xres, yres;
+};
+
 struct SALVL_Vertex
 {
 	NJS_VECTOR pos = {};
@@ -92,6 +107,10 @@ struct SALVL_MeshPart
 		{
 			vertex.tex.x = meshset->vertuv[j].u / 256.0f;
 			vertex.tex.y = meshset->vertuv[j].v / 256.0f;
+			if (matflags & NJD_FLAG_FLIP_U)
+				vertex.tex.x *= 0.5f;
+			if (matflags & NJD_FLAG_FLIP_V)
+				vertex.tex.y *= 0.5f;
 		}
 
 		//Add vertex and push index
@@ -99,12 +118,17 @@ struct SALVL_MeshPart
 	}
 
 	//Material information
-	std::string texture;
-	Uint32 diffuse;
+	Uint32 matflags = 0;
+
+	SALVL_Texture *texture = nullptr;
+	Uint32 diffuse = 0xB2B2B2;
 
 	//File information
-	unsigned int ind = 0;
+	std::string name;
 	std::string path;
+	std::string url;
+
+	unsigned int ind = 0;
 
 	//AABB
 	NJS_VECTOR aabb_correct = {};
@@ -249,13 +273,6 @@ struct SALVL_CSGMesh
 	}
 };
 
-struct SALVL_Texture
-{
-	//Texture information
-	std::string name, path;
-	int xres, yres;
-};
-
 //Ninja reimplementation
 void Reimp_njRotateX(NJS_MATRIX cframe, Angle x)
 {
@@ -369,10 +386,13 @@ int main(int argc, char *argv[])
 	}
 
 	std::string path_content = argv[1];
+	bool upload = false;
+
 	if (path_content == "upload")
 	{
-		//Upload mode, no content path
+		//Upload mode, generic content path
 		path_content = "salvl/";
+		upload = true;
 	}
 	else
 	{
@@ -410,7 +430,7 @@ int main(int argc, char *argv[])
 		std::string line;
 		std::getline(stream_texlist, line);
 
-		//Read texture path
+		//Read texture name
 		SALVL_Texture texture;
 		
 		auto delim_pathstart = line.find_first_of(",");
@@ -419,25 +439,75 @@ int main(int argc, char *argv[])
 		if (delim_pathstart != std::string::npos && delim_pathend != std::string::npos)
 		{
 			texture.name = line.substr(delim_pathstart + 1, (delim_pathend - delim_pathstart) - 1);
+			texture.name_fu = "fu_" + texture.name;
+			texture.name_fv = "fv_" + texture.name;
+			texture.name_fuv = "fuv_" + texture.name;
 			
-			//Read resolution
-			std::string res = line.substr(delim_pathend + 1);
-			auto delim_res = res.find_first_of("x");
-			if (delim_res != std::string::npos)
+			//Read original image
+			int tex_w, tex_h;
+			unsigned char *tex_src = stbi_load((path_texbase + texture.name).c_str(), &tex_w, &tex_h, NULL, 4);
+			if (tex_src == nullptr)
 			{
-				texture.xres = std::stoi(res.substr(0, delim_res));
-				texture.yres = std::stoi(res.substr(delim_res + 1));
-				
-				//Copy file
-				std::ifstream tex_src(path_texbase + texture.name, std::ios::binary);
-				std::ofstream tex_dst(path_content + "salvl/" + texture.name, std::ios::binary);
-				tex_dst << tex_src.rdbuf();
-
-				texture.path = "rbxasset://salvl/" + texture.name;
-
-				//Push to texture list
-				textures.push_back(texture);
+				std::cout << "Failed to read texture " << (path_texbase + texture.name) << std::endl;
+				return 1;
 			}
+			int tex_p = tex_w * 4;
+			
+			texture.xres = tex_w;
+			texture.yres = tex_h;
+
+			//Create flipped versions
+			unsigned char *tex_fu = (unsigned char*)STBI_MALLOC(tex_p * 2 * tex_h);
+			unsigned char *tex_fv = (unsigned char*)STBI_MALLOC(tex_p * tex_h * 2);
+			unsigned char *tex_fuv = (unsigned char*)STBI_MALLOC(tex_p * 2 * tex_h * 2);
+			if (tex_fv == nullptr || tex_fu == nullptr || tex_fuv == nullptr)
+			{
+				std::cout << "Failed to allocate texture flip buffers" << std::endl;
+				return 1;
+			}
+
+			//Horizontal flip
+			for (int x = 0; x < tex_w * 2; x++)
+			{
+				int src_x = x;
+				if (src_x >= tex_w)
+					src_x = tex_w * 2 - src_x - 1;
+				for (int y = 0; y < tex_h; y++)
+					memcpy(tex_fu + (y * tex_p * 2) + (x * 4), tex_src + (y * tex_p) + (src_x * 4), 4);
+			}
+
+			//Vertical flip
+			memcpy(tex_fv, tex_src, tex_p * tex_h);
+			for (int y = 0; y < tex_h; y++)
+				memcpy(tex_fv + tex_p * (tex_h + y), tex_src + tex_p * (tex_h - y - 1), tex_p);
+
+			//Vertical and horizontal flip
+			memcpy(tex_fuv, tex_fu, tex_p * 2 * tex_h);
+			for (int y = 0; y < tex_h; y++)
+				memcpy(tex_fuv + tex_p * 2 * (tex_h + y), tex_fu + tex_p * 2 * (tex_h - y - 1), tex_p * 2);
+
+			//Write textures
+			texture.path = path_content + "salvl/" + texture.name;
+			texture.path_fu = path_content + "salvl/" + texture.name_fu;
+			texture.path_fv = path_content + "salvl/" + texture.name_fv;
+			texture.path_fuv = path_content + "salvl/" + texture.name_fuv;
+
+			if (stbi_write_png(texture.path.c_str(), tex_w, tex_h, 4, tex_src, tex_p) == 0 ||
+				stbi_write_png(texture.path_fu.c_str(), tex_w * 2, tex_h, 4, tex_fu, tex_p * 2) == 0 ||
+				stbi_write_png(texture.path_fv.c_str(), tex_w, tex_h * 2, 4, tex_fv, tex_p) == 0 ||
+				stbi_write_png(texture.path_fuv.c_str(), tex_w * 2, tex_h * 2, 4, tex_fuv, tex_p * 2) == 0)
+			{
+				std::cout << "Failed to write textures" << std::endl;
+				return 1;
+			}
+
+			stbi_image_free(tex_src);
+			STBI_FREE(tex_fu);
+			STBI_FREE(tex_fv);
+			STBI_FREE(tex_fuv);
+
+			//Push to texture list
+			textures.push_back(texture);
 		}
 	}
 
@@ -514,6 +584,7 @@ int main(int argc, char *argv[])
 						Uint16 material = meshset->type_matId & 0x3FFF;
 						SALVL_MeshPart *meshpart = &mesh.parts[material];
 
+						//Read material
 						NJS_MATERIAL *nmaterial;
 						if (material < model->nbMat)
 							nmaterial = &model->mats[material];
@@ -522,10 +593,13 @@ int main(int argc, char *argv[])
 
 						if (nmaterial != nullptr)
 						{
-							meshpart->texture = (nmaterial->attrflags & NJD_FLAG_USE_TEXTURE) ? textures[nmaterial->attr_texId].path : "";
+							meshpart->matflags = nmaterial->attrflags;
+
+							meshpart->texture = (nmaterial->attrflags & NJD_FLAG_USE_TEXTURE) ? &textures[nmaterial->attr_texId] : nullptr;
 							meshpart->diffuse = ((Uint32)nmaterial->diffuse.argb.r << 16) | ((Uint32)nmaterial->diffuse.argb.g << 8) | ((Uint32)nmaterial->diffuse.argb.b);
 						}
 
+						//Read vertices
 						Uint16 polytype = meshset->type_matId >> 14;
 						Sint16 *indp = meshset->meshes;
 						for (Uint16 p = 0, j = 0; p < meshset->nbMesh; p++)
@@ -605,9 +679,11 @@ int main(int argc, char *argv[])
 			meshpart->AABBCorrect();
 
 			//Open mesh file
-			std::string path_mesh = path_content + "salvl/" + std::to_string(mesh_ind) + ".msh";
+			meshpart->name = std::to_string(mesh_ind) + ".msh";
 			meshpart->ind = mesh_ind;
-			meshpart->path = "rbxasset://salvl/" + std::to_string(mesh_ind) + ".msh";
+
+			std::string path_mesh = path_content + "salvl/" + meshpart->name;
+			meshpart->path = path_mesh;
 
 			std::ofstream stream_mesh(path_mesh, std::ios::binary);
 			if (!stream_mesh.is_open())
@@ -643,6 +719,26 @@ int main(int argc, char *argv[])
 
 			//Increment mesh index
 			mesh_ind++;
+		}
+	}
+
+	//Upload content to Roblox
+	if (upload)
+	{
+
+	}
+	else
+	{
+		//Get rbxasset URLs
+		for (auto &i : meshes)
+			for (auto &j : i.second.parts)
+				j.second.url = "rbxasset://salvl/" + j.second.name;
+		for (auto &i : textures)
+		{
+			i.url = "rbxasset://salvl/" + i.name;
+			i.url_fu = "rbxasset://salvl/" + i.name_fu;
+			i.url_fv = "rbxasset://salvl/" + i.name_fv;
+			i.url_fuv = "rbxasset://salvl/" + i.name_fuv;
 		}
 	}
 
@@ -803,8 +899,16 @@ int main(int argc, char *argv[])
 									stream_rbxmx << "<Y>" << i.meshpart->size.y << "</Y>" << std::endl;
 									stream_rbxmx << "<Z>" << i.meshpart->size.z << "</Z>" << std::endl;
 								stream_rbxmx << "</Vector3>" << std::endl;
-								stream_rbxmx << "<Content name=\"MeshID\"><url>" << i.meshpart->path << "</url></Content>" << std::endl;
-								stream_rbxmx << "<Content name=\"TextureID\"><url>" << i.meshpart->texture << "</url></Content>" << std::endl;
+								stream_rbxmx << "<Content name=\"MeshID\"><url>" << i.meshpart->url << "</url></Content>" << std::endl;
+								if ((i.meshpart->matflags & NJD_FLAG_USE_TEXTURE) && i.meshpart->texture != nullptr)
+								{
+									stream_rbxmx << "<Content name=\"TextureID\"><url>";
+									if (i.meshpart->matflags & NJD_FLAG_FLIP_U)
+										stream_rbxmx << ((i.meshpart->matflags & NJD_FLAG_FLIP_V) ? i.meshpart->texture->url_fuv : i.meshpart->texture->url_fu);
+									else
+										stream_rbxmx << ((i.meshpart->matflags & NJD_FLAG_FLIP_V) ? i.meshpart->texture->url_fv : i.meshpart->texture->url);
+									stream_rbxmx << "</url></Content>" << std::endl;
+								}
 								stream_rbxmx << "<SharedString name=\"PhysicalConfigData\">" << csgmesh->enc_hash << "</SharedString>" << std::endl;
 								stream_rbxmx << "<float name=\"Transparency\">" << ((i.surf_flag & SA1LVL_SURFFLAG_VISIBLE) ? 0.0f : 1.0f) << "</float>" << std::endl;
 								stream_rbxmx << "<Color3uint8 name = \"Color3uint8\">" << i.meshpart->diffuse << "</Color3uint8>" << std::endl;
@@ -850,8 +954,16 @@ int main(int argc, char *argv[])
 									stream_rbxmx << "<Y>" << i.meshpart->size.y << "</Y>" << std::endl;
 									stream_rbxmx << "<Z>" << i.meshpart->size.z << "</Z>" << std::endl;
 								stream_rbxmx << "</Vector3>" << std::endl;
-								stream_rbxmx << "<Content name=\"MeshID\"><url>" << i.meshpart->path << "</url></Content>" << std::endl;
-								stream_rbxmx << "<Content name=\"TextureID\"><url>" << i.meshpart->texture << "</url></Content>" << std::endl;
+								stream_rbxmx << "<Content name=\"MeshID\"><url>" << i.meshpart->url << "</url></Content>" << std::endl;
+								if ((i.meshpart->matflags & NJD_FLAG_USE_TEXTURE) && i.meshpart->texture != nullptr)
+								{
+									stream_rbxmx << "<Content name=\"TextureID\"><url>";
+									if (i.meshpart->matflags & NJD_FLAG_FLIP_U)
+										stream_rbxmx << ((i.meshpart->matflags & NJD_FLAG_FLIP_V) ? i.meshpart->texture->url_fuv : i.meshpart->texture->url_fu);
+									else
+										stream_rbxmx << ((i.meshpart->matflags & NJD_FLAG_FLIP_V) ? i.meshpart->texture->url_fv : i.meshpart->texture->url);
+									stream_rbxmx << "</url></Content>" << std::endl;
+								}
 								stream_rbxmx << "<float name=\"Transparency\">" << ((i.surf_flag & SA1LVL_SURFFLAG_VISIBLE) ? 0.0f : 1.0f) << "</float>" << std::endl;
 								stream_rbxmx << "<Color3uint8 name = \"Color3uint8\">" << i.meshpart->diffuse << "</Color3uint8>" << std::endl;
 							stream_rbxmx << "</Properties>" << std::endl;

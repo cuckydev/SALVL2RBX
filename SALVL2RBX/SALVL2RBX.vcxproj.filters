@@ -122,5 +122,11 @@
     <ClInclude Include="md5.h">
       <Filter>Header Files\SALVL2RBX</Filter>
     </ClInclude>
+    <ClInclude Include="stb_image.h">
+      <Filter>Header Files\SALVL2RBX</Filter>
+    </ClInclude>
+    <ClInclude Include="stb_image_write.h">
+      <Filter>Header Files\SALVL2RBX</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
