@@ -40,11 +40,12 @@ typedef uint32_t SA1LVL_SurfFlag;
 //SALVL types
 struct SALVL_Texture
 {
-	//Texture information
+	//File information
 	std::string name, name_fu, name_fv, name_fuv;
 	std::string path, path_fu, path_fv, path_fuv;
 	std::string url, url_fu, url_fv, url_fuv;
-	int xres, yres;
+	int xres = 0, yres = 0;
+	bool transparent = false;
 };
 
 struct SALVL_Vertex
@@ -385,14 +386,26 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 
+	//Get content folder
 	std::string path_content = argv[1];
 	bool upload = false;
 
 	if (path_content == "upload")
 	{
 		//Upload mode, generic content path
-		path_content = "salvl/";
+		path_content = "./";
 		upload = true;
+
+		//WARNING
+		std::cout << "WARNING:" << std::endl << "By using upload mode, you consent to two terms." << std::endl;
+		std::cout << " 1. This program will retrieve your Roblox Studio session (ROBLOSECURITY) to upload assets onto Roblox. Note that this program does not communicate to any servers other than Roblox's." << std::endl;
+		std::cout << " 2. Roblox may, whether deserved or not, take moderation action against your account for the assets uploaded. Please don't run this logged into your main account." << std::endl;
+		std::cout << std::endl << "IF YOU AGREE TO THESE TERMS, ENTER 'y'" << std::endl;
+
+		char pressed;
+		std::cin >> pressed;
+		if (pressed != 'y' || pressed == 'Y')
+			return 0;
 	}
 	else
 	{
@@ -400,7 +413,9 @@ int main(int argc, char *argv[])
 		if (path_content.back() != '/' && path_content.back() != '\\')
 			path_content += "/";
 	}
+	CreateDirectoryA((path_content + "salvl").c_str(), NULL);
 
+	//Get other arguments
 	std::string path_rbxmx = path_content + "salvl/level.rbxmx";
 
 	float scale = strtof(argv[2], nullptr);
@@ -455,6 +470,11 @@ int main(int argc, char *argv[])
 			
 			texture.xres = tex_w;
 			texture.yres = tex_h;
+
+			//Check if transparent
+			for (int i = 0; i < tex_w * tex_h; i++)
+				if (tex_src[i * 4 + 3] != 0xFF)
+					texture.transparent = true;
 
 			//Create flipped versions
 			unsigned char *tex_fu = (unsigned char*)STBI_MALLOC(tex_p * 2 * tex_h);
@@ -867,7 +887,7 @@ int main(int argc, char *argv[])
 							csgmesh = &csgmeshind->second;
 						}
 
-						//Write mesh file
+						//MeshPart
 						stream_rbxmx << "<Item class = \"MeshPart\">" << std::endl;
 							stream_rbxmx << "<Properties>" << std::endl;
 								stream_rbxmx << "<string name=\"Name\">MeshPart</string>" << std::endl;
@@ -900,7 +920,7 @@ int main(int argc, char *argv[])
 									stream_rbxmx << "<Z>" << i.meshpart->size.z << "</Z>" << std::endl;
 								stream_rbxmx << "</Vector3>" << std::endl;
 								stream_rbxmx << "<Content name=\"MeshID\"><url>" << i.meshpart->url << "</url></Content>" << std::endl;
-								if ((i.meshpart->matflags & NJD_FLAG_USE_TEXTURE) && i.meshpart->texture != nullptr)
+								if ((i.meshpart->matflags & NJD_FLAG_USE_TEXTURE) && i.meshpart->texture != nullptr && !i.meshpart->texture->transparent)
 								{
 									stream_rbxmx << "<Content name=\"TextureID\"><url>";
 									if (i.meshpart->matflags & NJD_FLAG_FLIP_U)
@@ -913,6 +933,21 @@ int main(int argc, char *argv[])
 								stream_rbxmx << "<float name=\"Transparency\">" << ((i.surf_flag & SA1LVL_SURFFLAG_VISIBLE) ? 0.0f : 1.0f) << "</float>" << std::endl;
 								stream_rbxmx << "<Color3uint8 name = \"Color3uint8\">" << i.meshpart->diffuse << "</Color3uint8>" << std::endl;
 							stream_rbxmx << "</Properties>" << std::endl;
+							if ((i.meshpart->matflags & NJD_FLAG_USE_TEXTURE) && i.meshpart->texture != nullptr && i.meshpart->texture->transparent)
+							{
+								//SurfaceAppearance
+								stream_rbxmx << "<Item class = \"SurfaceAppearance\">" << std::endl;
+									stream_rbxmx << "<Properties>" << std::endl;
+										stream_rbxmx << "<token name=\"AlphaMode\">1</token>" << std::endl;
+										stream_rbxmx << "<Content name=\"ColorMap\"><url>";
+										if (i.meshpart->matflags & NJD_FLAG_FLIP_U)
+											stream_rbxmx << ((i.meshpart->matflags & NJD_FLAG_FLIP_V) ? i.meshpart->texture->url_fuv : i.meshpart->texture->url_fu);
+										else
+											stream_rbxmx << ((i.meshpart->matflags & NJD_FLAG_FLIP_V) ? i.meshpart->texture->url_fv : i.meshpart->texture->url);
+										stream_rbxmx << "</url></Content>" << std::endl;
+									stream_rbxmx << "</Properties>" << std::endl;
+								stream_rbxmx << "</Item>" << std::endl;
+							}
 						stream_rbxmx << "</Item>" << std::endl;
 					}
 				stream_rbxmx << "</Item>" << std::endl;
@@ -923,6 +958,7 @@ int main(int argc, char *argv[])
 					stream_rbxmx << "</Properties>" << std::endl;
 					for (auto &i : mesh_visual)
 					{
+						//MeshPart
 						stream_rbxmx << "<Item class = \"MeshPart\">" << std::endl;
 							stream_rbxmx << "<Properties>" << std::endl;
 								stream_rbxmx << "<string name=\"Name\">MeshPart</string>" << std::endl;
@@ -955,7 +991,7 @@ int main(int argc, char *argv[])
 									stream_rbxmx << "<Z>" << i.meshpart->size.z << "</Z>" << std::endl;
 								stream_rbxmx << "</Vector3>" << std::endl;
 								stream_rbxmx << "<Content name=\"MeshID\"><url>" << i.meshpart->url << "</url></Content>" << std::endl;
-								if ((i.meshpart->matflags & NJD_FLAG_USE_TEXTURE) && i.meshpart->texture != nullptr)
+								if ((i.meshpart->matflags & NJD_FLAG_USE_TEXTURE) && i.meshpart->texture != nullptr && !i.meshpart->texture->transparent)
 								{
 									stream_rbxmx << "<Content name=\"TextureID\"><url>";
 									if (i.meshpart->matflags & NJD_FLAG_FLIP_U)
@@ -967,6 +1003,21 @@ int main(int argc, char *argv[])
 								stream_rbxmx << "<float name=\"Transparency\">" << ((i.surf_flag & SA1LVL_SURFFLAG_VISIBLE) ? 0.0f : 1.0f) << "</float>" << std::endl;
 								stream_rbxmx << "<Color3uint8 name = \"Color3uint8\">" << i.meshpart->diffuse << "</Color3uint8>" << std::endl;
 							stream_rbxmx << "</Properties>" << std::endl;
+							if ((i.meshpart->matflags & NJD_FLAG_USE_TEXTURE) && i.meshpart->texture != nullptr && i.meshpart->texture->transparent)
+							{
+								//SurfaceAppearance
+								stream_rbxmx << "<Item class = \"SurfaceAppearance\">" << std::endl;
+									stream_rbxmx << "<Properties>" << std::endl;
+										stream_rbxmx << "<token name=\"AlphaMode\">1</token>" << std::endl;
+										stream_rbxmx << "<Content name=\"ColorMap\"><url>";
+										if (i.meshpart->matflags & NJD_FLAG_FLIP_U)
+											stream_rbxmx << ((i.meshpart->matflags & NJD_FLAG_FLIP_V) ? i.meshpart->texture->url_fuv : i.meshpart->texture->url_fu);
+										else
+											stream_rbxmx << ((i.meshpart->matflags & NJD_FLAG_FLIP_V) ? i.meshpart->texture->url_fv : i.meshpart->texture->url);
+										stream_rbxmx << "</url></Content>" << std::endl;
+									stream_rbxmx << "</Properties>" << std::endl;
+								stream_rbxmx << "</Item>" << std::endl;
+							}
 						stream_rbxmx << "</Item>" << std::endl;
 					}
 				stream_rbxmx << "</Item>" << std::endl;
