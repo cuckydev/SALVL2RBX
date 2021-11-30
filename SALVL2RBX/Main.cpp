@@ -572,6 +572,7 @@ int main(int argc, char *argv[])
 											meshpart->IndexVertex(model, meshset, indp[l + 2], j + 2);
 										}
 									}
+									j += 2;
 									indp += (first & 0x7FFF);
 									break;
 								}
