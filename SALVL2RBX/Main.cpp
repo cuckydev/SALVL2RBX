@@ -25,7 +25,7 @@
 #define SALVL_OBJFLAG_NO_ANIMATE  0x40
 #define SALVL_OBJFLAG_NO_MORPH    0x80
 
-typedef uint32_t SA1LVL_SurfFlag;
+typedef Uint32 SA1LVL_SurfFlag;
 #define SA1LVL_SURFFLAG_SOLID                  0x1
 #define SA1LVL_SURFFLAG_WATER                  0x2
 #define SA1LVL_SURFFLAG_NO_FRICTION            0x4
@@ -55,8 +55,8 @@ struct SALVL_Vertex
 	NJS_POINT2 tex = {};
 	NJS_VECTOR nor = {};
 	NJS_VECTOR tan = {};
-	float ts = 0.0f;
-	float r = 1.0f, g = 1.0f, b = 1.0f, a = 1.0f;
+	Float ts = 0.0f;
+	Float r = 1.0f, g = 1.0f, b = 1.0f, a = 1.0f;
 
 	inline bool operator==(const SALVL_Vertex &rhs)
 	{
@@ -279,14 +279,14 @@ struct SALVL_CSGMesh
 void Reimp_njRotateX(NJS_MATRIX cframe, Angle x)
 {
 	//Calculate the sine and cosine of our angle
-	float sin = sinf((float)x * 3.14159265358979323846f / 0x8000);
-	float cos = cosf((float)x * 3.14159265358979323846f / 0x8000);
+	Float sin = sinf((float)x * 3.14159265358979323846f / 0x8000);
+	Float cos = cosf((float)x * 3.14159265358979323846f / 0x8000);
 
 	//Apply rotation onto matrix
-	float m10 = cframe[M10];
-	float m11 = cframe[M11];
-	float m12 = cframe[M12];
-	float m13 = cframe[M13];
+	Float m10 = cframe[M10];
+	Float m11 = cframe[M11];
+	Float m12 = cframe[M12];
+	Float m13 = cframe[M13];
 
 	cframe[M10] = sin * cframe[M20] + m10 * cos;
 	cframe[M11] = sin * cframe[M21] + m11 * cos;
@@ -298,17 +298,17 @@ void Reimp_njRotateX(NJS_MATRIX cframe, Angle x)
 	cframe[M23] = cos * cframe[M23] - m13 * sin;
 }
 
-void Reimp_njRotateY(float *cframe, Angle x)
+void Reimp_njRotateY(Float *cframe, Angle x)
 {
 	//Calculate the sine and cosine of our angle
-	float sin = sinf((float)x * 3.14159265358979323846f / 0x8000);
-	float cos = cosf((float)x * 3.14159265358979323846f / 0x8000);
+	Float sin = sinf((float)x * 3.14159265358979323846f / 0x8000);
+	Float cos = cosf((float)x * 3.14159265358979323846f / 0x8000);
 
 	//Apply rotation onto matrix
-	float m00 = cframe[M00];
-	float m01 = cframe[M01];
-	float m02 = cframe[M02];
-	float m03 = cframe[M03];
+	Float m00 = cframe[M00];
+	Float m01 = cframe[M01];
+	Float m02 = cframe[M02];
+	Float m03 = cframe[M03];
 
 	cframe[M00] = m00 * cos - sin * cframe[M20];
 	cframe[M01] = m01 * cos - sin * cframe[M21];
@@ -320,17 +320,17 @@ void Reimp_njRotateY(float *cframe, Angle x)
 	cframe[M23] = cos * cframe[M23] + m03 * sin;
 }
 
-void Reimp_njRotateZ(float *cframe, Angle x)
+void Reimp_njRotateZ(Float *cframe, Angle x)
 {
 	//Calculate the sine and cosine of our angle
-	float sin = sinf((float)x * 3.14159265358979323846f / 0x8000);
-	float cos = cosf((float)x * 3.14159265358979323846f / 0x8000);
+	Float sin = sinf((float)x * 3.14159265358979323846f / 0x8000);
+	Float cos = cosf((float)x * 3.14159265358979323846f / 0x8000);
 
 	//Apply rotation onto matrix
-	float m00 = cframe[M00];
-	float m01 = cframe[M01];
-	float m02 = cframe[M02];
-	float m03 = cframe[M03];
+	Float m00 = cframe[M00];
+	Float m01 = cframe[M01];
+	Float m02 = cframe[M02];
+	Float m03 = cframe[M03];
 
 	cframe[M00] = m00 * cos + sin * cframe[M10];
 	cframe[M01] = m01 * cos + sin * cframe[M11];
