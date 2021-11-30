@@ -24,3 +24,8 @@ Argument | Function
 `scale` | Scale of the map when importing into Roblox. Recommended 0.455
 `sa1lvl` | Path to the sa1lvl
 `texlist_index_txt` | Path to the index.txt of the extracted texture pack
+
+# WARNING
+By using upload mode, you consent to two terms.
+ 1. This program will retrieve your Roblox Studio session (ROBLOSECURITY) to upload assets onto Roblox. Note that this program does not communicate to any servers other than Roblox's.
+ 2. Roblox may, whether deserved or not, take moderation action against your account for the assets uploaded. Please don't run this logged into your main account.
