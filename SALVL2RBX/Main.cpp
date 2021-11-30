@@ -400,7 +400,8 @@ int main(int argc, char *argv[])
 		upload = true;
 
 		//WARNING
-		std::cout << "WARNING:" << std::endl << "By using upload mode, you consent to two terms." << std::endl;
+		std::cout << "WARNING:" << std::endl;
+		std::cout << "By using upload mode, you agree to two terms." << std::endl;
 		std::cout << " 1. This program will retrieve your Roblox Studio session (ROBLOSECURITY) to upload assets onto Roblox. Note that this program does not communicate to any servers other than Roblox's." << std::endl;
 		std::cout << " 2. Roblox may, whether deserved or not, take moderation action against your account for the assets uploaded. Please don't run this logged into your main account." << std::endl;
 		std::cout << std::endl << "IF YOU AGREE TO THESE TERMS, ENTER 'y'" << std::endl;
