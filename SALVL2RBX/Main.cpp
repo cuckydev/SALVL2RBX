@@ -3,6 +3,7 @@
 #include <vector>
 #include <cmath>
 #include <limits>
+#include <set>
 #include <algorithm>
 
 #include "LandTableInfo.h"
@@ -522,7 +523,7 @@ int main(int argc, char *argv[])
 			//Open mesh file
 			std::string path_mesh = path_content + "salvl/" + std::to_string(mesh_ind) + ".msh";
 			meshpart->ind = mesh_ind;
-			meshpart->path = path_mesh;
+			meshpart->path = "rbxasset://salvl/" + std::to_string(mesh_ind) + ".msh";
 
 			std::ofstream stream_mesh(path_mesh, std::ios::binary);
 			if (!stream_mesh.is_open())
@@ -627,6 +628,8 @@ int main(int argc, char *argv[])
 					{
 						//Calculate CSG mesh
 						auto csgmeshind = meshpart_csgmesh.find(i.meshpart);
+
+						SALVL_CSGMesh *csgmesh;
 						if (csgmeshind == meshpart_csgmesh.end())
 						{
 							//Generate CSG mesh data
@@ -673,12 +676,16 @@ int main(int argc, char *argv[])
 							}
 
 							//Create new mesh, encode, and push to map
-							SALVL_CSGMesh csgmesh;
-							csgmesh.Encode(csgmesh_data);
-							meshpart_csgmesh[i.meshpart] = csgmesh;
+							SALVL_CSGMesh csgmeshe;
+							csgmeshe.Encode(csgmesh_data);
+							meshpart_csgmesh[i.meshpart] = csgmeshe;
+							csgmesh = &meshpart_csgmesh[i.meshpart];
 						}
-
-						SALVL_CSGMesh *csgmesh = &meshpart_csgmesh[i.meshpart];
+						else
+						{
+							//Use already existing mesh
+							csgmesh = &csgmeshind->second;
+						}
 
 						//Write mesh file
 						stream_rbxmx << "<Item class = \"MeshPart\">" << std::endl;
@@ -711,8 +718,7 @@ int main(int argc, char *argv[])
 									stream_rbxmx << "<Y>" << i.meshpart->size.y << "</Y>" << std::endl;
 									stream_rbxmx << "<Z>" << i.meshpart->size.z << "</Z>" << std::endl;
 								stream_rbxmx << "</Vector3>" << std::endl;
-								stream_rbxmx << "<Content name=\"MeshID\"><url>rbxasset://salvl/" << i.meshpart->ind << ".msh</url></Content>" << std::endl;
-								stream_rbxmx << "<Content name=\"MeshId\"><url>rbxasset://salvl/" << i.meshpart->ind << ".msh</url></Content>" << std::endl;
+								stream_rbxmx << "<Content name=\"MeshID\"><url>" << i.meshpart->path << "</url></Content>" << std::endl;
 								stream_rbxmx << "<SharedString name=\"PhysicalConfigData\">" << csgmesh->enc_hash << "</SharedString>" << std::endl;
 								stream_rbxmx << "<float name=\"Transparency\">" << ((i.surf_flag & SA1LVL_SURFFLAG_VISIBLE) ? 0.0f : 1.0f) << "</float>" << std::endl;
 							stream_rbxmx << "</Properties>" << std::endl;
@@ -756,8 +762,7 @@ int main(int argc, char *argv[])
 									stream_rbxmx << "<Y>" << i.meshpart->size.y << "</Y>" << std::endl;
 									stream_rbxmx << "<Z>" << i.meshpart->size.z << "</Z>" << std::endl;
 								stream_rbxmx << "</Vector3>" << std::endl;
-								stream_rbxmx << "<Content name=\"MeshID\"><url>rbxasset://salvl/" << i.meshpart->ind << ".msh</url></Content>" << std::endl;
-								stream_rbxmx << "<Content name=\"MeshId\"><url>rbxasset://salvl/" << i.meshpart->ind << ".msh</url></Content>" << std::endl;
+								stream_rbxmx << "<Content name=\"MeshID\"><url>" << i.meshpart->path << "</url></Content>" << std::endl;
 								stream_rbxmx << "<float name=\"Transparency\">" << ((i.surf_flag & SA1LVL_SURFFLAG_VISIBLE) ? 0.0f : 1.0f) << "</float>" << std::endl;
 							stream_rbxmx << "</Properties>" << std::endl;
 						stream_rbxmx << "</Item>" << std::endl;
@@ -767,8 +772,15 @@ int main(int argc, char *argv[])
 		stream_rbxmx << "</Item>" << std::endl;
 		//Shared Strings (CSGMesh hashes)
 		stream_rbxmx << "<SharedStrings>" << std::endl;
+		std::set<std::string> csgmesh_key;
 		for (auto &i : meshpart_csgmesh)
-			stream_rbxmx << "<SharedString md5=\"" << i.second.enc_hash << "\">" << i.second.enc_base64 << "</SharedString>" << std::endl;
+		{
+			if (csgmesh_key.find(i.second.enc_hash) == csgmesh_key.end())
+			{
+				stream_rbxmx << "<SharedString md5=\"" << i.second.enc_hash << "\">" << i.second.enc_base64 << "</SharedString>" << std::endl;
+				csgmesh_key.insert(i.second.enc_hash);
+			}
+		}
 		stream_rbxmx << "</SharedStrings>" << std::endl;
 	stream_rbxmx << "</roblox>" << std::endl;
 
