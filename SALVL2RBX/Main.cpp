@@ -631,8 +631,8 @@ int main(int argc, char *argv[])
 						{
 							//Generate CSG mesh data
 							std::vector<Uint8> csgmesh_data;
-							csgmesh_data.push_back('C'); csgmesh_data.push_back('S'); csgmesh_data.push_back('G'); csgmesh_data.push_back('M'); csgmesh_data.push_back('S'); csgmesh_data.push_back('H');
-							Push32<Uint8>(csgmesh_data, 3);
+							csgmesh_data.push_back('C'); csgmesh_data.push_back('S'); csgmesh_data.push_back('G'); csgmesh_data.push_back('P'); csgmesh_data.push_back('H'); csgmesh_data.push_back('S');
+							Push32(csgmesh_data, 3);
 
 							//Write sub-meshes
 							for (int j = 0; j < i.meshpart->indices.size(); j += 3)
@@ -655,7 +655,7 @@ int main(int argc, char *argv[])
 								csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x80); csgmesh_data.push_back(0x3F);
 
 								//Write vertices
-								Push32(csgmesh_data, 6); //numCoords
+								Push32(csgmesh_data, 18); //numCoords
 								Push32(csgmesh_data, 4); //sizeof_float
 
 								PushFloat(csgmesh_data, v0->pos.x); PushFloat(csgmesh_data, v0->pos.y); PushFloat(csgmesh_data, v0->pos.z); //Vertex 0
@@ -663,8 +663,8 @@ int main(int argc, char *argv[])
 								PushFloat(csgmesh_data, v2->pos.x); PushFloat(csgmesh_data, v2->pos.y); PushFloat(csgmesh_data, v2->pos.z); //Vertex 2
 
 								PushFloat(csgmesh_data, v0->pos.x - v0->nor.x * 0.125f); PushFloat(csgmesh_data, v0->pos.y - v0->nor.y * 0.125f); PushFloat(csgmesh_data, v0->pos.z - v0->nor.z * 0.125f); //Vertex 3
-								PushFloat(csgmesh_data, v1->pos.x - v1->nor.x * 0.125f); PushFloat(csgmesh_data, v1->pos.y - v1->nor.y * 0.125f); PushFloat(csgmesh_data, v0->pos.z - v1->nor.z * 0.125f); //Vertex 4
-								PushFloat(csgmesh_data, v2->pos.x - v2->nor.x * 0.125f); PushFloat(csgmesh_data, v2->pos.y - v2->nor.y * 0.125f); PushFloat(csgmesh_data, v0->pos.z - v2->nor.z * 0.125f); //Vertex 5
+								PushFloat(csgmesh_data, v1->pos.x - v1->nor.x * 0.125f); PushFloat(csgmesh_data, v1->pos.y - v1->nor.y * 0.125f); PushFloat(csgmesh_data, v1->pos.z - v1->nor.z * 0.125f); //Vertex 4
+								PushFloat(csgmesh_data, v2->pos.x - v2->nor.x * 0.125f); PushFloat(csgmesh_data, v2->pos.y - v2->nor.y * 0.125f); PushFloat(csgmesh_data, v2->pos.z - v2->nor.z * 0.125f); //Vertex 5
 
 								//Write indices
 								Push32(csgmesh_data, 6); //numIndices
