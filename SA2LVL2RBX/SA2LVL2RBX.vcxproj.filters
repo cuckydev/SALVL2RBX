@@ -16,20 +16,26 @@
     <Filter Include="Source Files\libmodutils">
       <UniqueIdentifier>{5339b3f9-9944-44a4-b568-42940704eda9}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\sadx-mod-loader">
+    <Filter Include="Header Files\sa2-mod-loader">
       <UniqueIdentifier>{759b7e3b-6441-4524-8f46-0f5f52c7a9e5}</UniqueIdentifier>
     </Filter>
     <Filter Include="Header Files\libmodutils">
       <UniqueIdentifier>{192b6334-0a8e-44e5-8d26-55a2c5933f91}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\SALVL2RBX">
+    <Filter Include="Header Files\lib">
       <UniqueIdentifier>{b2baaecc-8e60-477a-bb91-5b077f47f4a0}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\SALVL2RBX">
+    <Filter Include="Source Files\SA2LVL2RBX">
       <UniqueIdentifier>{3050fb34-909f-4ecb-8fb7-1b8ca54d39fd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\SALVL2RBX">
+      <UniqueIdentifier>{65890a3c-9bdb-4874-a4c6-44ebad0343f7}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Main.cpp">
+      <Filter>Source Files\SA2LVL2RBX</Filter>
+    </ClCompile>
     <ClCompile Include="..\sadx-mod-loader\libmodutils\AnimationFile.cpp">
       <Filter>Source Files\libmodutils</Filter>
     </ClCompile>
@@ -51,82 +57,82 @@
     <ClCompile Include="..\sadx-mod-loader\libmodutils\Trampoline.cpp">
       <Filter>Source Files\libmodutils</Filter>
     </ClCompile>
-    <ClCompile Include="Main.cpp">
-      <Filter>Source Files\SALVL2RBX</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\d3d8types.h">
-      <Filter>Header Files\sadx-mod-loader</Filter>
+    <ClInclude Include="..\lib\md5.h">
+      <Filter>Header Files\lib</Filter>
     </ClInclude>
-    <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\MemAccess.h">
-      <Filter>Header Files\sadx-mod-loader</Filter>
+    <ClInclude Include="..\lib\stb_image.h">
+      <Filter>Header Files\lib</Filter>
     </ClInclude>
-    <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\ninja.h">
-      <Filter>Header Files\sadx-mod-loader</Filter>
+    <ClInclude Include="..\lib\stb_image_write.h">
+      <Filter>Header Files\lib</Filter>
     </ClInclude>
-    <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\njdef.h">
-      <Filter>Header Files\sadx-mod-loader</Filter>
+    <ClInclude Include="..\SALVL2RBX\SALVL2RBX.h">
+      <Filter>Header Files\SALVL2RBX</Filter>
     </ClInclude>
-    <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\SADXEnums.h">
-      <Filter>Header Files\sadx-mod-loader</Filter>
-    </ClInclude>
-    <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\SADXEnumsNew.h">
-      <Filter>Header Files\sadx-mod-loader</Filter>
-    </ClInclude>
-    <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\SADXFunctions.h">
-      <Filter>Header Files\sadx-mod-loader</Filter>
-    </ClInclude>
-    <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\SADXFunctionsNew.h">
-      <Filter>Header Files\sadx-mod-loader</Filter>
-    </ClInclude>
-    <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\SADXModInfo.h">
-      <Filter>Header Files\sadx-mod-loader</Filter>
-    </ClInclude>
-    <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\SADXModLoader.h">
-      <Filter>Header Files\sadx-mod-loader</Filter>
-    </ClInclude>
-    <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\SADXStructs.h">
-      <Filter>Header Files\sadx-mod-loader</Filter>
-    </ClInclude>
-    <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\SADXStructsNew.h">
-      <Filter>Header Files\sadx-mod-loader</Filter>
-    </ClInclude>
-    <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\SADXVariables.h">
-      <Filter>Header Files\sadx-mod-loader</Filter>
-    </ClInclude>
-    <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\SADXVariablesNew.h">
-      <Filter>Header Files\sadx-mod-loader</Filter>
-    </ClInclude>
-    <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\ScaleInfo.h">
-      <Filter>Header Files\sadx-mod-loader</Filter>
-    </ClInclude>
-    <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\UsercallFunctionHandler.h">
-      <Filter>Header Files\sadx-mod-loader</Filter>
-    </ClInclude>
-    <ClInclude Include="..\sadx-mod-loader\libmodutils\AnimationFile.h">
+    <ClInclude Include="..\sadx-mod-loader\libmodutils\ModelInfo.h">
       <Filter>Header Files\libmodutils</Filter>
     </ClInclude>
-    <ClInclude Include="..\sadx-mod-loader\libmodutils\GameObject.h">
+    <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\MemAccess.h">
       <Filter>Header Files\libmodutils</Filter>
     </ClInclude>
     <ClInclude Include="..\sadx-mod-loader\libmodutils\LandTableInfo.h">
       <Filter>Header Files\libmodutils</Filter>
     </ClInclude>
-    <ClInclude Include="..\sadx-mod-loader\libmodutils\ModelInfo.h">
+    <ClInclude Include="..\sadx-mod-loader\libmodutils\GameObject.h">
+      <Filter>Header Files\libmodutils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\sadx-mod-loader\libmodutils\AnimationFile.h">
       <Filter>Header Files\libmodutils</Filter>
     </ClInclude>
     <ClInclude Include="..\sadx-mod-loader\libmodutils\Trampoline.h">
       <Filter>Header Files\libmodutils</Filter>
     </ClInclude>
-    <ClInclude Include="md5.h">
-      <Filter>Header Files\SALVL2RBX</Filter>
+    <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\d3d8types.h">
+      <Filter>Header Files\sa2-mod-loader</Filter>
     </ClInclude>
-    <ClInclude Include="stb_image.h">
-      <Filter>Header Files\SALVL2RBX</Filter>
+    <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\ninja.h">
+      <Filter>Header Files\sa2-mod-loader</Filter>
     </ClInclude>
-    <ClInclude Include="stb_image_write.h">
-      <Filter>Header Files\SALVL2RBX</Filter>
+    <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\njdef.h">
+      <Filter>Header Files\sa2-mod-loader</Filter>
+    </ClInclude>
+    <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\SADXEnums.h">
+      <Filter>Header Files\sa2-mod-loader</Filter>
+    </ClInclude>
+    <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\SADXEnumsNew.h">
+      <Filter>Header Files\sa2-mod-loader</Filter>
+    </ClInclude>
+    <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\SADXFunctions.h">
+      <Filter>Header Files\sa2-mod-loader</Filter>
+    </ClInclude>
+    <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\SADXFunctionsNew.h">
+      <Filter>Header Files\sa2-mod-loader</Filter>
+    </ClInclude>
+    <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\SADXModInfo.h">
+      <Filter>Header Files\sa2-mod-loader</Filter>
+    </ClInclude>
+    <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\SADXModLoader.h">
+      <Filter>Header Files\sa2-mod-loader</Filter>
+    </ClInclude>
+    <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\SADXStructs.h">
+      <Filter>Header Files\sa2-mod-loader</Filter>
+    </ClInclude>
+    <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\SADXStructsNew.h">
+      <Filter>Header Files\sa2-mod-loader</Filter>
+    </ClInclude>
+    <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\SADXVariables.h">
+      <Filter>Header Files\sa2-mod-loader</Filter>
+    </ClInclude>
+    <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\SADXVariablesNew.h">
+      <Filter>Header Files\sa2-mod-loader</Filter>
+    </ClInclude>
+    <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\ScaleInfo.h">
+      <Filter>Header Files\sa2-mod-loader</Filter>
+    </ClInclude>
+    <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\UsercallFunctionHandler.h">
+      <Filter>Header Files\sa2-mod-loader</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

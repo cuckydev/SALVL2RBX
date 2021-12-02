@@ -30,18 +30,18 @@
 #define SALVL_OBJFLAG_NO_ANIMATE  0x40
 #define SALVL_OBJFLAG_NO_MORPH    0x80
 
-typedef Uint32 SA1LVL_SurfFlag;
-#define SA1LVL_SURFFLAG_SOLID                  0x1
-#define SA1LVL_SURFFLAG_WATER                  0x2
-#define SA1LVL_SURFFLAG_NO_FRICTION            0x4
-#define SA1LVL_SURFFLAG_NO_ACCELERATION        0x8
-#define SA1LVL_SURFFLAG_CANNOT_LAND            0x40
-#define SA1LVL_SURFFLAG_INCREASED_ACCELERATION 0x80
-#define SA1LVL_SURFFLAG_DIGGABLE               0x100
-#define SA1LVL_SURFFLAG_UNCLIMBABLE            0x1000
-#define SA1LVL_SURFFLAG_HURT                   0x10000
-#define SA1LVL_SURFFLAG_FOOTPRINTS             0x100000
-#define SA1LVL_SURFFLAG_VISIBLE                0x80000000
+typedef Uint32 SALVL_SurfFlag;
+#define SALVL_SURFFLAG_SOLID                  0x1
+#define SALVL_SURFFLAG_WATER                  0x2
+#define SALVL_SURFFLAG_NO_FRICTION            0x4
+#define SALVL_SURFFLAG_NO_ACCELERATION        0x8
+#define SALVL_SURFFLAG_CANNOT_LAND            0x40
+#define SALVL_SURFFLAG_INCREASED_ACCELERATION 0x80
+#define SALVL_SURFFLAG_DIGGABLE               0x100
+#define SALVL_SURFFLAG_UNCLIMBABLE            0x1000
+#define SALVL_SURFFLAG_HURT                   0x10000
+#define SALVL_SURFFLAG_FOOTPRINTS             0x100000
+#define SALVL_SURFFLAG_VISIBLE                0x80000000
 
 //SALVL types
 struct SALVL_Texture
@@ -210,7 +210,7 @@ struct SALVL_MeshInstance
 	NJS_VECTOR pos = {};
 
 	//Flags
-	SA1LVL_SurfFlag surf_flag = 0;
+	SALVL_SurfFlag surf_flag = 0;
 };
 
 struct SALVL_MeshPartInstance
@@ -223,7 +223,7 @@ struct SALVL_MeshPartInstance
 	NJS_VECTOR pos = {};
 
 	//Flags
-	SA1LVL_SurfFlag surf_flag = 0;
+	SALVL_SurfFlag surf_flag = 0;
 };
 
 #include <wincrypt.h> //ugh
@@ -1198,9 +1198,9 @@ int main(int argc, char *argv[])
 			meshpart_instance.surf_flag = i.surf_flag;
 
 			//Add to appropriate list
-			if (i.surf_flag & SA1LVL_SURFFLAG_SOLID)
+			if (i.surf_flag & SALVL_SURFFLAG_SOLID)
 				mesh_collision.push_back(meshpart_instance);
-			else if (i.surf_flag & SA1LVL_SURFFLAG_VISIBLE)
+			else if (i.surf_flag & SALVL_SURFFLAG_VISIBLE)
 				mesh_visual.push_back(meshpart_instance);
 		}
 	}
@@ -1338,7 +1338,7 @@ int main(int argc, char *argv[])
 									stream_rbxmx << "</url></Content>" << std::endl;
 								}
 								stream_rbxmx << "<SharedString name=\"PhysicalConfigData\">" << csgmesh->enc_hash << "</SharedString>" << std::endl;
-								stream_rbxmx << "<float name=\"Transparency\">" << ((i.surf_flag & SA1LVL_SURFFLAG_VISIBLE) ? 0.0f : 1.0f) << "</float>" << std::endl;
+								stream_rbxmx << "<float name=\"Transparency\">" << ((i.surf_flag & SALVL_SURFFLAG_VISIBLE) ? 0.0f : 1.0f) << "</float>" << std::endl;
 								stream_rbxmx << "<Color3uint8 name = \"Color3uint8\">" << i.meshpart->diffuse << "</Color3uint8>" << std::endl;
 							stream_rbxmx << "</Properties>" << std::endl;
 							if ((i.meshpart->matflags & NJD_FLAG_USE_TEXTURE) && i.meshpart->texture != nullptr && i.meshpart->texture->transparent)
@@ -1402,7 +1402,7 @@ int main(int argc, char *argv[])
 									stream_rbxmx << i.meshpart->url_texture;
 									stream_rbxmx << "</url></Content>" << std::endl;
 								}
-								stream_rbxmx << "<float name=\"Transparency\">" << ((i.surf_flag & SA1LVL_SURFFLAG_VISIBLE) ? 0.0f : 1.0f) << "</float>" << std::endl;
+								stream_rbxmx << "<float name=\"Transparency\">" << ((i.surf_flag & SALVL_SURFFLAG_VISIBLE) ? 0.0f : 1.0f) << "</float>" << std::endl;
 								stream_rbxmx << "<Color3uint8 name = \"Color3uint8\">" << i.meshpart->diffuse << "</Color3uint8>" << std::endl;
 							stream_rbxmx << "</Properties>" << std::endl;
 							if ((i.meshpart->matflags & NJD_FLAG_USE_TEXTURE) && i.meshpart->texture != nullptr && i.meshpart->texture->transparent)

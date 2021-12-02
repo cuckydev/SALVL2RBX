@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{76091a62-e5ed-4d0d-b2de-eed64969b151}</ProjectGuid>
-    <RootNamespace>SALVL2RBX</RootNamespace>
+    <ProjectGuid>{40C2FA12-5FF3-4BBF-A9D3-5B6BC7884CF7}</ProjectGuid>
+    <RootNamespace>SA1LVL2RBX</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -72,20 +72,20 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(SolutionDir)sadx-mod-loader\SADXModLoader\include\;$(SolutionDir)sadx-mod-loader\libmodutils\;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)SALVL2RBX;$(SolutionDir)lib;$(SolutionDir)sadx-mod-loader\SADXModLoader\include\;$(SolutionDir)sadx-mod-loader\libmodutils\;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(SolutionDir)sadx-mod-loader\SADXModLoader\include\;$(SolutionDir)sadx-mod-loader\libmodutils\;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)SALVL2RBX;$(SolutionDir)lib;$(SolutionDir)sadx-mod-loader\SADXModLoader\include\;$(SolutionDir)sadx-mod-loader\libmodutils\;$(IncludePath)</IncludePath>
     <ExternalIncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);</ExternalIncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(SolutionDir)sadx-mod-loader\SADXModLoader\include\;$(SolutionDir)sadx-mod-loader\libmodutils\;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)SALVL2RBX;$(SolutionDir)lib;$(SolutionDir)sadx-mod-loader\SADXModLoader\include\;$(SolutionDir)sadx-mod-loader\libmodutils\;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(SolutionDir)sadx-mod-loader\SADXModLoader\include\;$(SolutionDir)sadx-mod-loader\libmodutils\;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)SALVL2RBX;$(SolutionDir)lib;$(SolutionDir)sadx-mod-loader\SADXModLoader\include\;$(SolutionDir)sadx-mod-loader\libmodutils\;$(IncludePath)</IncludePath>
     <ExternalIncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);</ExternalIncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -159,6 +159,9 @@
     <ClCompile Include="Main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\lib\md5.h" />
+    <ClInclude Include="..\lib\stb_image.h" />
+    <ClInclude Include="..\lib\stb_image_write.h" />
     <ClInclude Include="..\sadx-mod-loader\libmodutils\AnimationFile.h" />
     <ClInclude Include="..\sadx-mod-loader\libmodutils\GameObject.h" />
     <ClInclude Include="..\sadx-mod-loader\libmodutils\LandTableInfo.h" />
@@ -180,9 +183,7 @@
     <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\SADXVariablesNew.h" />
     <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\ScaleInfo.h" />
     <ClInclude Include="..\sadx-mod-loader\SADXModLoader\include\UsercallFunctionHandler.h" />
-    <ClInclude Include="md5.h" />
-    <ClInclude Include="stb_image.h" />
-    <ClInclude Include="stb_image_write.h" />
+    <ClInclude Include="..\SALVL2RBX\SALVL2RBX.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
