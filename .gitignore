@@ -3,3 +3,4 @@ Debug/
 Release/
 SALVL2RBX/Debug/
 SALVL2RBX/Release/
+*.vcxproj.user
