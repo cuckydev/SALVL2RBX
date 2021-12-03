@@ -72,20 +72,20 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(SolutionDir)SALVL2RBX;$(SolutionDir)lib;$(SolutionDir)sadx-mod-loader\SADXModLoader\include\;$(SolutionDir)sadx-mod-loader\libmodutils\;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)SALVL2RBX;$(SolutionDir)lib;$(SolutionDir)sa2-mod-loader\SA2ModLoader\include\;$(SolutionDir)sa2-mod-loader\libmodutils\;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(SolutionDir)SALVL2RBX;$(SolutionDir)lib;$(SolutionDir)sadx-mod-loader\SADXModLoader\include\;$(SolutionDir)sadx-mod-loader\libmodutils\;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)SALVL2RBX;$(SolutionDir)lib;$(SolutionDir)sa2-mod-loader\SA2ModLoader\include\;$(SolutionDir)sa2-mod-loader\libmodutils\;$(IncludePath)</IncludePath>
     <ExternalIncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);</ExternalIncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(SolutionDir)SALVL2RBX;$(SolutionDir)lib;$(SolutionDir)sadx-mod-loader\SADXModLoader\include\;$(SolutionDir)sadx-mod-loader\libmodutils\;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)SALVL2RBX;$(SolutionDir)lib;$(SolutionDir)sa2-mod-loader\SA2ModLoader\include\;$(SolutionDir)sa2-mod-loader\libmodutils\;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(SolutionDir)SALVL2RBX;$(SolutionDir)lib;$(SolutionDir)sadx-mod-loader\SADXModLoader\include\;$(SolutionDir)sadx-mod-loader\libmodutils\;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)SALVL2RBX;$(SolutionDir)lib;$(SolutionDir)sa2-mod-loader\SA2ModLoader\include\;$(SolutionDir)sa2-mod-loader\libmodutils\;$(IncludePath)</IncludePath>
     <ExternalIncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);</ExternalIncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
