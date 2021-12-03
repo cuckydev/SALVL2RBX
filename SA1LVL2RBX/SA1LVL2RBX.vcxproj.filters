@@ -31,6 +31,9 @@
     <Filter Include="Header Files\SALVL2RBX">
       <UniqueIdentifier>{65890a3c-9bdb-4874-a4c6-44ebad0343f7}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\SALVL2RBX">
+      <UniqueIdentifier>{352330c5-fc55-4c7b-a521-be3be1e69090}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\sadx-mod-loader\libmodutils\AnimationFile.cpp">
@@ -54,8 +57,11 @@
     <ClCompile Include="..\sadx-mod-loader\libmodutils\Trampoline.cpp">
       <Filter>Source Files\libmodutils</Filter>
     </ClCompile>
-    <ClCompile Include="Main.cpp">
+    <ClCompile Include="SA1LVL2RBX.cpp">
       <Filter>Source Files\SA1LVL2RBX</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SALVL2RBX\SALVL2RBX.cpp">
+      <Filter>Source Files\SALVL2RBX</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

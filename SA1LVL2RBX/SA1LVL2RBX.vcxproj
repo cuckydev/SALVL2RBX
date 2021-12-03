@@ -156,7 +156,8 @@
     <ClCompile Include="..\sadx-mod-loader\libmodutils\LandTableInfo.cpp" />
     <ClCompile Include="..\sadx-mod-loader\libmodutils\ModelInfo.cpp" />
     <ClCompile Include="..\sadx-mod-loader\libmodutils\Trampoline.cpp" />
-    <ClCompile Include="Main.cpp" />
+    <ClCompile Include="..\SALVL2RBX\SALVL2RBX.cpp" />
+    <ClCompile Include="SA1LVL2RBX.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\lib\md5.h" />
