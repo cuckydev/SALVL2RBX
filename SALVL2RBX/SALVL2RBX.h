@@ -10,27 +10,11 @@
 #include <wininet.h>
 
 //SALVL types
-#define SALVL_OBJFLAG_NO_POSITION 0x01
-#define SALVL_OBJFLAG_NO_ROTATE   0x02
-#define SALVL_OBJFLAG_NO_SCALE    0x04
-#define SALVL_OBJFLAG_NO_DISPLAY  0x08
-#define SALVL_OBJFLAG_NO_CHILDREN 0x10
-#define SALVL_OBJFLAG_ROTATE_XYZ  0x20
-#define SALVL_OBJFLAG_NO_ANIMATE  0x40
-#define SALVL_OBJFLAG_NO_MORPH    0x80
-
 typedef Uint32 SALVL_SurfFlag;
-#define SALVL_SURFFLAG_SOLID                  0x1
-#define SALVL_SURFFLAG_WATER                  0x2
-#define SALVL_SURFFLAG_NO_FRICTION            0x4
-#define SALVL_SURFFLAG_NO_ACCELERATION        0x8
-#define SALVL_SURFFLAG_CANNOT_LAND            0x40
-#define SALVL_SURFFLAG_INCREASED_ACCELERATION 0x80
-#define SALVL_SURFFLAG_DIGGABLE               0x100
-#define SALVL_SURFFLAG_UNCLIMBABLE            0x1000
-#define SALVL_SURFFLAG_HURT                   0x10000
-#define SALVL_SURFFLAG_FOOTPRINTS             0x100000
-#define SALVL_SURFFLAG_VISIBLE                0x80000000
+#define SALVL_SURFFLAG_SOLID                  (1 << 0)
+#define SALVL_SURFFLAG_VISIBLE                (1 << 1)
+
+#define SALVL_FLAG_REMAP(x, from, to) ((x & from) ? to : 0)
 
 //SALVL types
 struct SALVL_Texture
@@ -87,30 +71,6 @@ struct SALVL_MeshPart
 		//Push new vertex
 		vertex.push_back(adder);
 		return j;
-	}
-
-	void IndexVertex(NJS_MODEL_SADX *model, NJS_MESHSET_SADX *meshset, Sint16 i, Sint16 j)
-	{
-		//Construct vertex
-		SALVL_Vertex vertex;
-		vertex.pos.x = model->points[i].x;
-		vertex.pos.y = model->points[i].y;
-		vertex.pos.z = model->points[i].z;
-		vertex.nor.x = model->normals[i].x;
-		vertex.nor.y = model->normals[i].y;
-		vertex.nor.z = model->normals[i].z;
-		if (meshset->vertuv != nullptr)
-		{
-			vertex.tex.x = meshset->vertuv[j].u / 256.0f;
-			vertex.tex.y = meshset->vertuv[j].v / 256.0f;
-			if (matflags & NJD_FLAG_FLIP_U)
-				vertex.tex.x *= 0.5f;
-			if (matflags & NJD_FLAG_FLIP_V)
-				vertex.tex.y *= 0.5f;
-		}
-
-		//Add vertex and push index
-		indices.push_back(AddVertex(vertex));
 	}
 
 	//Material information

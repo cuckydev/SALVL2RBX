@@ -470,7 +470,11 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 	//Get other arguments
 	std::string path_rbxmx = path_content + "salvl/level.rbxmx";
 
-	float scale = std::stof(targv[2]);
+	float scale;
+	try
+	{ scale = std::stof(targv[2]); }
+	catch (...)
+	{ std::cout << "Invalid scale parameter" << std::endl; return 1; }
 
 	std::string path_lvl = targv[3];
 
@@ -810,6 +814,8 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 
 	for (auto &i : lvl.meshinstances)
 	{
+		if (i.mesh == nullptr)
+			continue;
 		for (auto &j : i.mesh->parts)
 		{
 			//Construct mesh part instance
