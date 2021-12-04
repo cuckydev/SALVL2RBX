@@ -200,7 +200,7 @@ int SA2LVL_Loader(SALVL &lvl, std::string path_lvl)
 				auto meshind = lvl.meshes.find(object->model);
 				if (meshind != lvl.meshes.end())
 				{
-					//Use already created mesh instace
+					//Use already created mesh instance
 					meshinstance.mesh = &meshind->second;
 				}
 				else
