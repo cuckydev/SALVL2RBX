@@ -261,10 +261,10 @@ public:
 		//Open request to upload service
 		static PCSTR accept_types[] = { "*/*", nullptr };
 
-		HINTERNET mesh_request = HttpOpenRequestA(roblox, "POST", object.c_str(), nullptr, nullptr, accept_types, 0, 0);
-		if (mesh_request == nullptr)
+		HINTERNET upload_request = HttpOpenRequestA(roblox, "POST", object.c_str(), nullptr, nullptr, accept_types, 0, 0);
+		if (upload_request == nullptr)
 		{
-			std::cout << "Failed to create HTTP request to mesh service " << GetLastError() << std::endl;
+			std::cout << "Failed to create HTTP request to upload service " << GetLastError() << std::endl;
 			return "";
 		}
 
@@ -272,22 +272,22 @@ public:
 		for (int i = 0; i < 10; i++)
 		{
 			//Setup headers
-			HttpAddRequestHeadersA(mesh_request, "Content-Type: */*\n", -1, HTTP_ADDREQ_FLAG_ADD | HTTP_ADDREQ_FLAG_REPLACE);
-			HttpAddRequestHeadersA(mesh_request, "User-Agent: RobloxStudio/WinInet\n", -1, HTTP_ADDREQ_FLAG_ADD | HTTP_ADDREQ_FLAG_REPLACE);
-			HttpAddRequestHeadersA(mesh_request, ("X-CSRF-TOKEN: " + xsrf_token + "\n").c_str(), -1, HTTP_ADDREQ_FLAG_ADD | HTTP_ADDREQ_FLAG_REPLACE);
+			HttpAddRequestHeadersA(upload_request, "Content-Type: */*\n", -1, HTTP_ADDREQ_FLAG_ADD | HTTP_ADDREQ_FLAG_REPLACE);
+			HttpAddRequestHeadersA(upload_request, "User-Agent: RobloxStudio/WinInet\n", -1, HTTP_ADDREQ_FLAG_ADD | HTTP_ADDREQ_FLAG_REPLACE);
+			HttpAddRequestHeadersA(upload_request, ("X-CSRF-TOKEN: " + xsrf_token + "\n").c_str(), -1, HTTP_ADDREQ_FLAG_ADD | HTTP_ADDREQ_FLAG_REPLACE);
 
 			//Send request
-			if (HttpSendRequestA(mesh_request, nullptr, -1, (void *)data.data(), data.size()) == FALSE)
+			if (HttpSendRequestA(upload_request, nullptr, -1, (void *)data.data(), data.size()) == FALSE)
 				break;
 
 			//Handle XSRF property
-			std::string response = GetHTTPString(mesh_request, HTTP_QUERY_STATUS_TEXT);
+			std::string response = GetHTTPString(upload_request, HTTP_QUERY_STATUS_TEXT);
 			std::cout << response << std::endl;
 
 			if (response.find("XSRF") != std::string::npos)
 			{
 				//Get headers
-				char *headers = GetHTTPData(mesh_request, HTTP_QUERY_RAW_HEADERS, nullptr);
+				char *headers = GetHTTPData(upload_request, HTTP_QUERY_RAW_HEADERS, nullptr);
 				if (headers == nullptr)
 					break;
 
@@ -316,24 +316,25 @@ public:
 				DWORD received = 0;
 				std::string block(blocksize, 0);
 				std::string result;
-				while (InternetReadFile(mesh_request, &block[0], blocksize, &received) && received)
+				while (InternetReadFile(upload_request, &block[0], blocksize, &received) && received)
 				{
 					block.resize(received);
 					result += block;
 				}
 
 				//Return response
-				InternetCloseHandle(mesh_request);
+				InternetCloseHandle(upload_request);
 				return result;
 			}
 			else
 			{
+				//Something went wrong, usually "Too many uploads."
 				Sleep(3000);
 			}
 		}
 
 		//Close request
-		InternetCloseHandle(mesh_request);
+		InternetCloseHandle(upload_request);
 		return "";
 	}
 

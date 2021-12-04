@@ -26,8 +26,8 @@
 #define SA1LVL_SURFFLAG_FOOTPRINTS             0x100000
 #define SA1LVL_SURFFLAG_VISIBLE                0x80000000
 
-//SA1LVL loader
-void SA1LVL_IndexVertex(SALVL_MeshPart &meshpart, NJS_MODEL_SADX *model, NJS_MESHSET_SADX *meshset, Sint16 i, Sint16 j)
+//SA1LVL basic loader
+void SA1LVL_IndexVertexBasic(SALVL_MeshPart &meshpart, NJS_MODEL_SADX *model, NJS_MESHSET_SADX *meshset, Sint16 i, Sint16 j)
 {
 	//Construct vertex
 	SALVL_Vertex vertex;
@@ -51,6 +51,93 @@ void SA1LVL_IndexVertex(SALVL_MeshPart &meshpart, NJS_MODEL_SADX *model, NJS_MES
 	meshpart.indices.push_back(meshpart.AddVertex(vertex));
 }
 
+void SA1LVL_LoadBasic(SALVL &lvl, COL *colp, NJS_MODEL_SADX *model)
+{
+	//Read mesh parts
+	SALVL_Mesh mesh;
+
+	NJS_MESHSET_SADX *meshset = model->meshsets;
+	for (Uint16 k = 0; k < model->nbMeshset; k++, meshset++)
+	{
+		//Create mesh part
+		Uint16 material = meshset->type_matId & 0x3FFF;
+		SALVL_MeshPart *meshpart = &mesh.parts[material];
+
+		//Read material
+		NJS_MATERIAL *nmaterial;
+		if (material < model->nbMat)
+			nmaterial = &model->mats[material];
+		else
+			nmaterial = nullptr;
+
+		if (nmaterial != nullptr)
+		{
+			meshpart->matflags = nmaterial->attrflags;
+
+			meshpart->texture = (nmaterial->attrflags & NJD_FLAG_USE_TEXTURE) ? &lvl.textures[nmaterial->attr_texId] : nullptr;
+			meshpart->diffuse = ((Uint32)nmaterial->diffuse.argb.r << 16) | ((Uint32)nmaterial->diffuse.argb.g << 8) | ((Uint32)nmaterial->diffuse.argb.b);
+		}
+
+		//Read vertices
+		Uint16 polytype = meshset->type_matId >> 14;
+		Sint16 *indp = meshset->meshes;
+		for (Uint16 p = 0, j = 0; p < meshset->nbMesh; p++)
+		{
+			switch (polytype)
+			{
+			case 0: //Triangles
+			{
+				SA1LVL_IndexVertexBasic(*meshpart, model, meshset, indp[0], j + 0);
+				SA1LVL_IndexVertexBasic(*meshpart, model, meshset, indp[1], j + 1);
+				SA1LVL_IndexVertexBasic(*meshpart, model, meshset, indp[2], j + 2);
+				indp += 3;
+				j += 3;
+				break;
+			}
+			case 1: //Quads
+			{
+				SA1LVL_IndexVertexBasic(*meshpart, model, meshset, indp[0], j + 0);
+				SA1LVL_IndexVertexBasic(*meshpart, model, meshset, indp[1], j + 1);
+				SA1LVL_IndexVertexBasic(*meshpart, model, meshset, indp[2], j + 2);
+				SA1LVL_IndexVertexBasic(*meshpart, model, meshset, indp[2], j + 2);
+				SA1LVL_IndexVertexBasic(*meshpart, model, meshset, indp[1], j + 1);
+				SA1LVL_IndexVertexBasic(*meshpart, model, meshset, indp[3], j + 3);
+				indp += 4;
+				j += 4;
+				break;
+			}
+			case 3: //Strip
+			{
+				Uint16 first = *indp++;
+				for (Uint16 l = 0; l < (first & 0x7FFF) - 2; l++, j++)
+				{
+					first ^= 0x8000;
+					if (first & 0x8000)
+					{
+						SA1LVL_IndexVertexBasic(*meshpart, model, meshset, indp[l + 0], j + 0);
+						SA1LVL_IndexVertexBasic(*meshpart, model, meshset, indp[l + 1], j + 1);
+						SA1LVL_IndexVertexBasic(*meshpart, model, meshset, indp[l + 2], j + 2);
+					}
+					else
+					{
+						SA1LVL_IndexVertexBasic(*meshpart, model, meshset, indp[l + 1], j + 1);
+						SA1LVL_IndexVertexBasic(*meshpart, model, meshset, indp[l + 0], j + 0);
+						SA1LVL_IndexVertexBasic(*meshpart, model, meshset, indp[l + 2], j + 2);
+					}
+				}
+				j += 2;
+				indp += (first & 0x7FFF);
+				break;
+			}
+			}
+		}
+	}
+
+	//Push mesh to map and instance
+	lvl.meshes[model] = mesh;
+}
+
+//SA1LVL loader
 int SA1LVL_Loader(SALVL &lvl, std::string path_lvl)
 {
 	//Load landtable from path
@@ -110,89 +197,9 @@ int SA1LVL_Loader(SALVL &lvl, std::string path_lvl)
 				}
 				else
 				{
-					//Read mesh parts
-					SALVL_Mesh mesh;
-
-					NJS_MESHSET_SADX *meshset = model->meshsets;
-					for (Uint16 k = 0; k < model->nbMeshset; k++, meshset++)
-					{
-						//Create mesh part
-						Uint16 material = meshset->type_matId & 0x3FFF;
-						SALVL_MeshPart *meshpart = &mesh.parts[material];
-
-						//Read material
-						NJS_MATERIAL *nmaterial;
-						if (material < model->nbMat)
-							nmaterial = &model->mats[material];
-						else
-							nmaterial = nullptr;
-
-						if (nmaterial != nullptr)
-						{
-							meshpart->matflags = nmaterial->attrflags;
-
-							meshpart->texture = (nmaterial->attrflags & NJD_FLAG_USE_TEXTURE) ? &lvl.textures[nmaterial->attr_texId] : nullptr;
-							meshpart->diffuse = ((Uint32)nmaterial->diffuse.argb.r << 16) | ((Uint32)nmaterial->diffuse.argb.g << 8) | ((Uint32)nmaterial->diffuse.argb.b);
-						}
-
-						//Read vertices
-						Uint16 polytype = meshset->type_matId >> 14;
-						Sint16 *indp = meshset->meshes;
-						for (Uint16 p = 0, j = 0; p < meshset->nbMesh; p++)
-						{
-							switch (polytype)
-							{
-								case 0: //Triangles
-								{
-									SA1LVL_IndexVertex(*meshpart, model, meshset, indp[0], j + 0);
-									SA1LVL_IndexVertex(*meshpart, model, meshset, indp[1], j + 1);
-									SA1LVL_IndexVertex(*meshpart, model, meshset, indp[2], j + 2);
-									indp += 3;
-									j += 3;
-									break;
-								}
-								case 1: //Quads
-								{
-									SA1LVL_IndexVertex(*meshpart, model, meshset, indp[0], j + 0);
-									SA1LVL_IndexVertex(*meshpart, model, meshset, indp[1], j + 1);
-									SA1LVL_IndexVertex(*meshpart, model, meshset, indp[2], j + 2);
-									SA1LVL_IndexVertex(*meshpart, model, meshset, indp[2], j + 2);
-									SA1LVL_IndexVertex(*meshpart, model, meshset, indp[1], j + 1);
-									SA1LVL_IndexVertex(*meshpart, model, meshset, indp[3], j + 3);
-									indp += 4;
-									j += 4;
-									break;
-								}
-								case 3: //Strip
-								{
-									Uint16 first = *indp++;
-									for (Uint16 l = 0; l < (first & 0x7FFF) - 2; l++, j++)
-									{
-										first ^= 0x8000;
-										if (first & 0x8000)
-										{
-											SA1LVL_IndexVertex(*meshpart, model, meshset, indp[l + 0], j + 0);
-											SA1LVL_IndexVertex(*meshpart, model, meshset, indp[l + 1], j + 1);
-											SA1LVL_IndexVertex(*meshpart, model, meshset, indp[l + 2], j + 2);
-										}
-										else
-										{
-											SA1LVL_IndexVertex(*meshpart, model, meshset, indp[l + 1], j + 1);
-											SA1LVL_IndexVertex(*meshpart, model, meshset, indp[l + 0], j + 0);
-											SA1LVL_IndexVertex(*meshpart, model, meshset, indp[l + 2], j + 2);
-										}
-									}
-									j += 2;
-									indp += (first & 0x7FFF);
-									break;
-								}
-							}
-						}
-					}
-
-					//Push mesh to map and instance
-					lvl.meshes[model] = mesh;
-					meshinstance.mesh = &lvl.meshes[model];
+					//Load mesh
+					SA1LVL_LoadBasic(lvl, colp, object->getbasicdxmodel());
+					meshinstance.mesh = &lvl.meshes[object->model];
 				}
 
 				//Push mesh instance

@@ -31,7 +31,13 @@
 #define SA2LVL_SURFFLAG_UNK2           0x40000000
 #define SA2LVL_SURFFLAG_VISIBLE        0x80000000
 
-//SA2LVL loader
+//SA2LVL chunk loader
+void SA2LVL_LoadChunk(SALVL &lvl, COL *colp, NJS_CNK_MODEL *model)
+{
+
+}
+
+//SA2LVL basic loader
 void SA2LVL_IndexVertexBasic(SALVL_MeshPart &meshpart, NJS_MODEL *model, NJS_MESHSET *meshset, Sint16 i, Sint16 j)
 {
 	//Construct vertex
@@ -142,11 +148,7 @@ void SA2LVL_LoadBasic(SALVL &lvl, COL *colp, NJS_MODEL *model)
 	lvl.meshes[model] = mesh;
 }
 
-void SA2LVL_LoadChunk(SALVL &lvl, COL *colp, NJS_CNK_MODEL *model)
-{
-
-}
-
+//SA2LVL loader
 int SA2LVL_Loader(SALVL &lvl, std::string path_lvl)
 {
 	//Load landtable from path
@@ -203,7 +205,7 @@ int SA2LVL_Loader(SALVL &lvl, std::string path_lvl)
 				}
 				else
 				{
-					//Determine model loader
+					//Load mesh of appropriate type
 					if ((landtable->VisibleModelCount >= 0) ? (i < landtable->VisibleModelCount) : ((colp->Flags & SA2LVL_SURFFLAG_VISIBLE) != 0))
 						SA2LVL_LoadChunk(lvl, colp, object->getchunkmodel());
 					else
