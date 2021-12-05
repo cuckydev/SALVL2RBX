@@ -678,8 +678,8 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 				WriteFloat(stream_mesh, k.pos.x); WriteFloat(stream_mesh, k.pos.y); WriteFloat(stream_mesh, k.pos.z); //Position
 				WriteFloat(stream_mesh, k.nor.x); WriteFloat(stream_mesh, k.nor.y); WriteFloat(stream_mesh, k.nor.z); //Normal
 				WriteFloat(stream_mesh, k.tex.x); WriteFloat(stream_mesh, k.tex.y); //Texture
-				stream_mesh.put((char)0x00); stream_mesh.put((char)0x00); stream_mesh.put((char)0x00); stream_mesh.put((char)0x00); //Tangent
-				stream_mesh.put((char)0xFF); stream_mesh.put((char)0xFF); stream_mesh.put((char)0xFF); stream_mesh.put((char)0xFF); //RGBA tint
+				stream_mesh.put((char)0); stream_mesh.put((char)0); stream_mesh.put((char)-127); stream_mesh.put((char)1); //Tangent
+				stream_mesh.put((char)k.r); stream_mesh.put((char)k.g); stream_mesh.put((char)k.b); stream_mesh.put((char)k.a); //RGBA tint
 			}
 
 			//Write indices

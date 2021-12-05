@@ -34,37 +34,159 @@
 //SA2LVL chunk loader
 struct SA2LVL_VertexChunk
 {
-	
+	//Header
+	Sint32 type, num_verts, index_offset;
+
+	//Vertex data
+	std::vector<SALVL_Vertex> vertex;
+};
+
+struct SA2LVL_PolyChunk_Material
+{
+	//Material information
+	Sint16 texid;
+	Uint8 r, g, b, a;
+
+	inline bool operator==(const SA2LVL_PolyChunk_Material &rhs)
+	{
+		return
+			texid == rhs.texid &&
+			r == rhs.r && g == rhs.g && b == rhs.b && a == rhs.a;
+	}
+	inline bool operator!=(const SA2LVL_PolyChunk_Material &rhs)
+	{
+		return !(*this == rhs);
+	}
+};
+
+struct SA2LVL_Chunk
+{
+	//Chunk data
+	std::vector<SA2LVL_VertexChunk> vertex_chunks;
+	std::vector<SA2LVL_PolyChunk_Material> materials;
+
+	Uint16 AddMaterial(SA2LVL_PolyChunk_Material &adder)
+	{
+		//Check if identical vertex already exists
+		Uint16 j = 0;
+		for (auto &i : materials)
+		{
+			if (i == adder)
+				return j;
+			j++;
+		}
+
+		//Push new material
+		materials.push_back(adder);
+		return j;
+	}
 };
 
 void SA2LVL_LoadChunk(SALVL &lvl, COL *colp, NJS_CNK_MODEL *model)
 {
+	SA2LVL_Chunk chunk;
+
 	//Read vertex chunks
 	std::vector<SA2LVL_VertexChunk> vertex_chunks;
 
-	int i = 0;
-	for (Sint32 *chunk = model->vlist; chunk != nullptr; chunk = NextChunk(chunk))
+	for (Sint32 *chunkp = model->vlist; chunkp != nullptr; chunkp = NextChunk(chunkp))
 	{
 		//Read chunk header
-		Sint32 type = chunk[0] & 0xFF;
+		SA2LVL_VertexChunk chunk;
 
-		switch (type)
+		chunk.type = chunkp[0] & 0xFF;
+		chunk.num_verts = chunkp[1] >> 16;
+		chunk.index_offset = chunkp[1] & 0xFFFF;
+
+		//Read chunk data by header type
+		switch (chunk.type)
 		{
+			case NJD_CV:
+			{
+				//Read vertex data
+				struct NJS_CV { NJS_VECTOR pos, nor; };
+				NJS_CV *chunkcast = (NJS_CV*)(chunkp + 2);
+
+				for (Sint32 i = 0; i < chunk.num_verts; i++, chunkcast++)
+				{
+					SALVL_Vertex v;
+					v.pos.x = chunkcast->pos.x;
+					v.pos.y = chunkcast->pos.y;
+					v.pos.z = chunkcast->pos.z;
+
+					chunk.vertex.push_back(v);
+				}
+
+				//Push chunk
+				vertex_chunks.push_back(chunk);
+				break;
+			}
 			case NJD_CV_VN:
 			{
+				//Read vertex and normal data
+				struct NJS_CV_VN { NJS_VECTOR pos, nor; };
+				NJS_CV_VN *chunkcast = (NJS_CV_VN*)(chunkp + 2);
+
+				for (Sint32 i = 0; i < chunk.num_verts; i++, chunkcast++)
+				{
+					SALVL_Vertex v;
+					v.pos.x = chunkcast->pos.x;
+					v.pos.y = chunkcast->pos.y;
+					v.pos.z = chunkcast->pos.z;
+					v.nor.x = chunkcast->nor.x;
+					v.nor.y = chunkcast->nor.y;
+					v.nor.z = chunkcast->nor.z;
+
+					chunk.vertex.push_back(v);
+				}
+
+				//Push chunk
+				vertex_chunks.push_back(chunk);
 				break;
 			}
 			case NJD_CV_D8:
 			{
+				//Read vertex and diffuse data
+				struct NJS_CV_D8 { NJS_VECTOR pos; NJS_COLOR col; };
+				NJS_CV_D8 *chunkcast = (NJS_CV_D8*)(chunkp + 2);
+
+				for (Sint32 i = 0; i < chunk.num_verts; i++, chunkcast++)
+				{
+					SALVL_Vertex v;
+					v.pos.x = chunkcast->pos.x;
+					v.pos.y = chunkcast->pos.y;
+					v.pos.z = chunkcast->pos.z;
+					v.r = chunkcast->col.argb.r;
+					v.g = chunkcast->col.argb.g;
+					v.b = chunkcast->col.argb.b;
+					v.a = chunkcast->col.argb.a;
+
+					chunk.vertex.push_back(v);
+				}
+
+				//Push chunk
+				vertex_chunks.push_back(chunk);
+				break;
+			}
+			case NJD_CE:
+			case NJD_CN:
+			{
+				//End of chunk or null chunk
 				break;
 			}
 			default:
 			{
-				std::cout << "Fail" << std::endl;
+				//Not necessarily a bad thing
+				std::cout << "Unrecognized chunk type " << chunk.type << std::endl;
 				break;
 			}
 		}
-		i++;
+	}
+
+	//Read polygon chunks
+	for (Sint16 *chunkp = model->plist; chunkp != nullptr; chunkp = NextChunk(chunkp))
+	{
+		//Read chunk header
 	}
 }
 

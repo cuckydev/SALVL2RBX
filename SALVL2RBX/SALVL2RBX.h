@@ -31,10 +31,10 @@ struct SALVL_Vertex
 {
 	NJS_VECTOR pos = {};
 	NJS_POINT2 tex = {};
-	NJS_VECTOR nor = {};
+	NJS_VECTOR nor = {0.0f, 1.0f, 0.0f}; //MainMemory suggested straight up
 	NJS_VECTOR tan = {};
 	Float ts = 0.0f;
-	Float r = 1.0f, g = 1.0f, b = 1.0f, a = 1.0f;
+	Uint8 r = 255, g = 255, b = 255, a = 255;
 
 	inline bool operator==(const SALVL_Vertex &rhs)
 	{
