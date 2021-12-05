@@ -92,48 +92,63 @@ void Reimp_njRotateX(NJS_MATRIX cframe, Angle x)
 	Float cos = cosf((float)x * 3.14159265358979323846f / 0x8000);
 
 	//Apply rotation onto matrix
-	cframe[M10] = sin * cframe[M20] + cframe[M10] * cos;
-	cframe[M11] = sin * cframe[M21] + cframe[M11] * cos;
-	cframe[M12] = sin * cframe[M22] + cframe[M12] * cos;
-	cframe[M13] = sin * cframe[M23] + cframe[M13] * cos;
-	cframe[M20] = cos * cframe[M20] - cframe[M10] * sin;
-	cframe[M21] = cos * cframe[M21] - cframe[M11] * sin;
-	cframe[M22] = cos * cframe[M22] - cframe[M12] * sin;
-	cframe[M23] = cos * cframe[M23] - cframe[M13] * sin;
+	Float m10 = cframe[M10];
+	Float m11 = cframe[M11];
+	Float m12 = cframe[M12];
+	Float m13 = cframe[M13];
+
+	cframe[M10] = sin * cframe[M20] + m10 * cos;
+	cframe[M11] = sin * cframe[M21] + m11 * cos;
+	cframe[M12] = sin * cframe[M22] + m12 * cos;
+	cframe[M13] = sin * cframe[M23] + m13 * cos;
+	cframe[M20] = cos * cframe[M20] - m10 * sin;
+	cframe[M21] = cos * cframe[M21] - m11 * sin;
+	cframe[M22] = cos * cframe[M22] - m12 * sin;
+	cframe[M23] = cos * cframe[M23] - m13 * sin;
 }
 
-void Reimp_njRotateY(Float *cframe, Angle x)
+void Reimp_njRotateY(NJS_MATRIX cframe, Angle x)
 {
 	//Calculate the sine and cosine of our angle
 	Float sin = sinf((float)x * 3.14159265358979323846f / 0x8000);
 	Float cos = cosf((float)x * 3.14159265358979323846f / 0x8000);
 
 	//Apply rotation onto matrix
-	cframe[M00] = cframe[M00] * cos - sin * cframe[M20];
-	cframe[M01] = cframe[M01] * cos - sin * cframe[M21];
-	cframe[M02] = cframe[M02] * cos - sin * cframe[M22];
-	cframe[M03] = cframe[M03] * cos - sin * cframe[M23];
-	cframe[M20] = cos * cframe[M20] + cframe[M00] * sin;
-	cframe[M21] = cos * cframe[M21] + cframe[M01] * sin;
-	cframe[M22] = cos * cframe[M22] + cframe[M02] * sin;
-	cframe[M23] = cos * cframe[M23] + cframe[M03] * sin;
+	Float m00 = cframe[M00];
+	Float m01 = cframe[M01];
+	Float m02 = cframe[M02];
+	Float m03 = cframe[M03];
+
+	cframe[M00] = m00 * cos - sin * cframe[M20];
+	cframe[M01] = m01 * cos - sin * cframe[M21];
+	cframe[M02] = m02 * cos - sin * cframe[M22];
+	cframe[M03] = m03 * cos - sin * cframe[M23];
+	cframe[M20] = cos * cframe[M20] + m00 * sin;
+	cframe[M21] = cos * cframe[M21] + m01 * sin;
+	cframe[M22] = cos * cframe[M22] + m02 * sin;
+	cframe[M23] = cos * cframe[M23] + m03 * sin;
 }
 
-void Reimp_njRotateZ(Float *cframe, Angle x)
+void Reimp_njRotateZ(NJS_MATRIX cframe, Angle x)
 {
 	//Calculate the sine and cosine of our angle
 	Float sin = sinf((float)x * 3.14159265358979323846f / 0x8000);
 	Float cos = cosf((float)x * 3.14159265358979323846f / 0x8000);
 
 	//Apply rotation onto matrix
-	cframe[M00] = cframe[M00] * cos + sin * cframe[M10];
-	cframe[M01] = cframe[M01] * cos + sin * cframe[M11];
-	cframe[M02] = cframe[M02] * cos + sin * cframe[M12];
-	cframe[M03] = cframe[M03] * cos + sin * cframe[M13];
-	cframe[M10] = cos * cframe[M10] - cframe[M00] * sin;
-	cframe[M11] = cos * cframe[M11] - cframe[M01] * sin;
-	cframe[M12] = cos * cframe[M12] - cframe[M02] * sin;
-	cframe[M13] = cos * cframe[M13] - cframe[M03] * sin;
+	Float m00 = cframe[M00];
+	Float m01 = cframe[M01];
+	Float m02 = cframe[M02];
+	Float m03 = cframe[M03];
+
+	cframe[M00] = m00 * cos + sin * cframe[M10];
+	cframe[M01] = m01 * cos + sin * cframe[M11];
+	cframe[M02] = m02 * cos + sin * cframe[M12];
+	cframe[M03] = m03 * cos + sin * cframe[M13];
+	cframe[M10] = cos * cframe[M10] - m00 * sin;
+	cframe[M11] = cos * cframe[M11] - m01 * sin;
+	cframe[M12] = cos * cframe[M12] - m02 * sin;
+	cframe[M13] = cos * cframe[M13] - m03 * sin;
 }
 
 //File writes
@@ -654,7 +669,7 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 
 			unsigned int num_verts = meshpart->vertex.size();
 			Write32(stream_mesh, num_verts);
-			unsigned int num_faces = meshpart->indices.size() / 3;
+			unsigned int num_faces = meshpart->indices.size();
 			Write32(stream_mesh, num_faces);
 
 			//Write vertex data
@@ -669,7 +684,11 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 
 			//Write indices
 			for (auto &k : meshpart->indices)
-				Write32(stream_mesh, k);
+			{
+				Write32(stream_mesh, k.i[0]);
+				Write32(stream_mesh, k.i[1]);
+				Write32(stream_mesh, k.i[2]);
+			}
 
 			//Increment mesh index
 			mesh_ind++;
@@ -890,12 +909,12 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 			Push32(csgmesh_data, 3);
 
 			//Write sub-meshes
-			for (size_t j = 0; j < i.meshpart->indices.size(); j += 3)
+			for (auto &j : i.meshpart->indices)
 			{
 				//Get vertices
-				SALVL_Vertex *v0 = &i.meshpart->vertex[i.meshpart->indices[j + 0]];
-				SALVL_Vertex *v1 = &i.meshpart->vertex[i.meshpart->indices[j + 1]];
-				SALVL_Vertex *v2 = &i.meshpart->vertex[i.meshpart->indices[j + 2]];
+				SALVL_Vertex *v0 = &i.meshpart->vertex[j.i[0]];
+				SALVL_Vertex *v1 = &i.meshpart->vertex[j.i[1]];
+				SALVL_Vertex *v2 = &i.meshpart->vertex[j.i[2]];
 
 				//Write dummied out header
 				Push32(csgmesh_data, 16); //sizeof_TriIndices

@@ -11,8 +11,8 @@
 
 //SALVL types
 typedef Uint32 SALVL_SurfFlag;
-#define SALVL_SURFFLAG_SOLID                  (1 << 0)
-#define SALVL_SURFFLAG_VISIBLE                (1 << 1)
+#define SALVL_SURFFLAG_SOLID   (1 << 0)
+#define SALVL_SURFFLAG_VISIBLE (1 << 1)
 
 #define SALVL_FLAG_REMAP(x, from, to) ((x & from) ? to : 0)
 
@@ -51,11 +51,16 @@ struct SALVL_Vertex
 	}
 };
 
+struct SALVL_MeshFace
+{
+	Sint16 i[3];
+};
+
 struct SALVL_MeshPart
 {
 	//Mesh data
 	std::vector<SALVL_Vertex> vertex;
-	std::vector<Sint16> indices;
+	std::vector<SALVL_MeshFace> indices;
 
 	Uint16 AddVertex(SALVL_Vertex &adder)
 	{
@@ -122,12 +127,12 @@ struct SALVL_MeshPart
 		size.x = maxx - minx;
 		size.y = maxy - miny;
 		size.z = maxz - minz;
-		if (size.x < 0.1f)
-			size.x = 0.1f;
-		if (size.y < 0.1f)
-			size.y = 0.1f;
-		if (size.z < 0.1f)
-			size.z = 0.1f;
+		if (size.x < 0.2f)
+			size.x = 0.2f;
+		if (size.y < 0.2f)
+			size.y = 0.2f;
+		if (size.z < 0.2f)
+			size.z = 0.2f;
 
 		//Correct AABB
 		aabb_correct.x = (minx + maxx) * 0.5f;

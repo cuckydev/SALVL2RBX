@@ -27,28 +27,36 @@
 #define SA1LVL_SURFFLAG_VISIBLE                0x80000000
 
 //SA1LVL basic loader
-void SA1LVL_IndexVertexBasic(SALVL_MeshPart &meshpart, NJS_MODEL_SADX *model, NJS_MESHSET_SADX *meshset, Sint16 i, Sint16 j)
+void SA1LVL_IndexVertexBasic(SALVL_MeshPart &meshpart, NJS_MODEL_SADX *model, NJS_MESHSET_SADX *meshset, SALVL_MeshFace i, SALVL_MeshFace j)
 {
-	//Construct vertex
-	SALVL_Vertex vertex;
-	vertex.pos.x = model->points[i].x;
-	vertex.pos.y = model->points[i].y;
-	vertex.pos.z = model->points[i].z;
-	vertex.nor.x = model->normals[i].x;
-	vertex.nor.y = model->normals[i].y;
-	vertex.nor.z = model->normals[i].z;
-	if (meshset->vertuv != nullptr)
+	SALVL_Vertex vertex[3];
+	SALVL_MeshFace pi;
+
+	for (int k = 0; k < 3; k++)
 	{
-		vertex.tex.x = meshset->vertuv[j].u / 256.0f;
-		vertex.tex.y = meshset->vertuv[j].v / 256.0f;
-		if (meshpart.matflags & NJD_FLAG_FLIP_U)
-			vertex.tex.x *= 0.5f;
-		if (meshpart.matflags & NJD_FLAG_FLIP_V)
-			vertex.tex.y *= 0.5f;
+		//Construct vertex
+		vertex[k].pos.x = model->points[i.i[k]].x;
+		vertex[k].pos.y = model->points[i.i[k]].y;
+		vertex[k].pos.z = model->points[i.i[k]].z;
+		vertex[k].nor.x = model->normals[i.i[k]].x;
+		vertex[k].nor.y = model->normals[i.i[k]].y;
+		vertex[k].nor.z = model->normals[i.i[k]].z;
+		if (meshset->vertuv != nullptr)
+		{
+			vertex[k].tex.x = meshset->vertuv[j.i[k]].u / 256.0f;
+			vertex[k].tex.y = meshset->vertuv[j.i[k]].v / 256.0f;
+			if (meshpart.matflags & NJD_FLAG_FLIP_U)
+				vertex[k].tex.x *= 0.5f;
+			if (meshpart.matflags & NJD_FLAG_FLIP_V)
+				vertex[k].tex.y *= 0.5f;
+		}
+
+		//Add vertex and get index
+		pi.i[k] = meshpart.AddVertex(vertex[k]);
 	}
 
-	//Add vertex and push index
-	meshpart.indices.push_back(meshpart.AddVertex(vertex));
+	//Push indices
+	meshpart.indices.push_back(pi);
 }
 
 void SA1LVL_LoadBasic(SALVL &lvl, COL *colp, NJS_MODEL_SADX *model)
@@ -81,54 +89,42 @@ void SA1LVL_LoadBasic(SALVL &lvl, COL *colp, NJS_MODEL_SADX *model)
 		//Read vertices
 		Uint16 polytype = meshset->type_matId >> 14;
 		Sint16 *indp = meshset->meshes;
-		for (Uint16 p = 0, j = 0; p < meshset->nbMesh; p++)
+		Sint16 l = 0;
+
+		for (Uint16 p = 0; p < meshset->nbMesh; p++)
 		{
 			switch (polytype)
 			{
-			case 0: //Triangles
-			{
-				SA1LVL_IndexVertexBasic(*meshpart, model, meshset, indp[0], j + 0);
-				SA1LVL_IndexVertexBasic(*meshpart, model, meshset, indp[1], j + 1);
-				SA1LVL_IndexVertexBasic(*meshpart, model, meshset, indp[2], j + 2);
-				indp += 3;
-				j += 3;
-				break;
-			}
-			case 1: //Quads
-			{
-				SA1LVL_IndexVertexBasic(*meshpart, model, meshset, indp[0], j + 0);
-				SA1LVL_IndexVertexBasic(*meshpart, model, meshset, indp[1], j + 1);
-				SA1LVL_IndexVertexBasic(*meshpart, model, meshset, indp[2], j + 2);
-				SA1LVL_IndexVertexBasic(*meshpart, model, meshset, indp[2], j + 2);
-				SA1LVL_IndexVertexBasic(*meshpart, model, meshset, indp[1], j + 1);
-				SA1LVL_IndexVertexBasic(*meshpart, model, meshset, indp[3], j + 3);
-				indp += 4;
-				j += 4;
-				break;
-			}
-			case 3: //Strip
-			{
-				Uint16 first = *indp++;
-				for (Uint16 l = 0; l < (first & 0x7FFF) - 2; l++, j++)
+				case 0: //Triangles
 				{
-					first ^= 0x8000;
-					if (first & 0x8000)
-					{
-						SA1LVL_IndexVertexBasic(*meshpart, model, meshset, indp[l + 0], j + 0);
-						SA1LVL_IndexVertexBasic(*meshpart, model, meshset, indp[l + 1], j + 1);
-						SA1LVL_IndexVertexBasic(*meshpart, model, meshset, indp[l + 2], j + 2);
-					}
-					else
-					{
-						SA1LVL_IndexVertexBasic(*meshpart, model, meshset, indp[l + 1], j + 1);
-						SA1LVL_IndexVertexBasic(*meshpart, model, meshset, indp[l + 0], j + 0);
-						SA1LVL_IndexVertexBasic(*meshpart, model, meshset, indp[l + 2], j + 2);
-					}
+					SA1LVL_IndexVertexBasic(*meshpart, model, meshset, {indp[0], indp[1], indp[2]}, {(Sint16)(l + 0), (Sint16)(l + 1), (Sint16)(l + 2)});
+					indp += 3;
+					l += 3;
+					break;
 				}
-				j += 2;
-				indp += (first & 0x7FFF);
-				break;
-			}
+				case 1: //Quads
+				{
+					SA1LVL_IndexVertexBasic(*meshpart, model, meshset, {indp[2], indp[1], indp[3]}, {(Sint16)(l + 2), (Sint16)(l + 1), (Sint16)(l + 2)});
+					SA1LVL_IndexVertexBasic(*meshpart, model, meshset, {indp[2], indp[1], indp[3]}, {(Sint16)(l + 2), (Sint16)(l + 1), (Sint16)(l + 3)});
+					indp += 4;
+					l += 4;
+					break;
+				}
+				case 3: //Strip
+				{
+					Uint16 first = *indp++;
+					for (Uint16 x = 0; x < (first & 0x7FFF) - 2; x++, l++)
+					{
+						first ^= 0x8000;
+						if (first & 0x8000)
+							SA1LVL_IndexVertexBasic(*meshpart, model, meshset, {indp[x + 0], indp[x + 1], indp[x + 2]}, {(Sint16)(l + 0), (Sint16)(l + 1), (Sint16)(l + 2)});
+						else
+							SA1LVL_IndexVertexBasic(*meshpart, model, meshset, {indp[x + 1], indp[x + 0], indp[x + 2]}, {(Sint16)(l + 1), (Sint16)(l + 0), (Sint16)(l + 2)});
+					}
+					l += 2;
+					indp += (first & 0x7FFF);
+					break;
+				}
 			}
 		}
 	}
@@ -162,9 +158,7 @@ int SA1LVL_Loader(SALVL &lvl, std::string path_lvl)
 		if (object != nullptr)
 		{
 			//Get model to use
-			NJS_MODEL_SADX *model = object->getbasicdxmodel();
-
-			if (model != nullptr)
+			if (object->model != nullptr)
 			{
 				//Create mesh instance
 				SALVL_MeshInstance meshinstance;
@@ -189,7 +183,7 @@ int SA1LVL_Loader(SALVL &lvl, std::string path_lvl)
 				meshinstance.pos.z = object->pos[2];
 
 				//Get mesh
-				auto meshind = lvl.meshes.find(model);
+				auto meshind = lvl.meshes.find(object->model);
 				if (meshind != lvl.meshes.end())
 				{
 					//Use already created mesh instance
