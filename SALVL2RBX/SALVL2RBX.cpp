@@ -1095,6 +1095,7 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 	}
 	stream_rbxmx << "</SharedStrings>" << std::endl;
 	stream_rbxmx << "</roblox>" << std::endl;
+	stream_rbxmx.close();
 
 	//Cleanup WSA
 	if (upload)

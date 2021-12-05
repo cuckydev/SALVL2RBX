@@ -32,19 +32,40 @@
 #define SA2LVL_SURFFLAG_VISIBLE        0x80000000
 
 //SA2LVL chunk loader
-class SA2LVL_VertexChunk
+struct SA2LVL_VertexChunk
 {
-	public:
-		void Load(Sint32 *vlist)
-		{
-
-		}
+	
 };
 
 void SA2LVL_LoadChunk(SALVL &lvl, COL *colp, NJS_CNK_MODEL *model)
 {
-	//Read chunk data
+	//Read vertex chunks
+	std::vector<SA2LVL_VertexChunk> vertex_chunks;
 
+	int i = 0;
+	for (Sint32 *chunk = model->vlist; chunk != nullptr; chunk = NextChunk(chunk))
+	{
+		//Read chunk header
+		Sint32 type = chunk[0] & 0xFF;
+
+		switch (type)
+		{
+			case NJD_CV_VN:
+			{
+				break;
+			}
+			case NJD_CV_D8:
+			{
+				break;
+			}
+			default:
+			{
+				std::cout << "Fail" << std::endl;
+				break;
+			}
+		}
+		i++;
+	}
 }
 
 //SA2LVL basic loader
