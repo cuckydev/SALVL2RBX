@@ -32,25 +32,17 @@
 #define SA2LVL_SURFFLAG_VISIBLE        0x80000000
 
 //SA2LVL chunk loader
-struct SA2LVL_VertexChunk
-{
-	//Header
-	Sint32 type, num_verts, index_offset;
-
-	//Vertex data
-	std::vector<SALVL_Vertex> vertex;
-};
-
 struct SA2LVL_PolyChunk_Material
 {
 	//Material information
-	Sint16 texid;
-	Uint8 r, g, b, a;
+	Sint16 texflags = 0;
+	Sint16 texid = -1;
+	Uint8 r = 255, g = 255, b = 255, a = 255;
 
 	inline bool operator==(const SA2LVL_PolyChunk_Material &rhs)
 	{
 		return
-			texid == rhs.texid &&
+			texflags == rhs.texflags && texid == rhs.texid &&
 			r == rhs.r && g == rhs.g && b == rhs.b && a == rhs.a;
 	}
 	inline bool operator!=(const SA2LVL_PolyChunk_Material &rhs)
@@ -62,8 +54,9 @@ struct SA2LVL_PolyChunk_Material
 struct SA2LVL_Chunk
 {
 	//Chunk data
-	std::vector<SA2LVL_VertexChunk> vertex_chunks;
+	std::unordered_map<Sint32, SALVL_Vertex> vertex;
 	std::vector<SA2LVL_PolyChunk_Material> materials;
+	SALVL_Mesh mesh;
 
 	Uint16 AddMaterial(SA2LVL_PolyChunk_Material &adder)
 	{
@@ -84,22 +77,18 @@ struct SA2LVL_Chunk
 
 void SA2LVL_LoadChunk(SALVL &lvl, COL *colp, NJS_CNK_MODEL *model)
 {
-	SA2LVL_Chunk chunk;
+	SA2LVL_Chunk chunk_model;
 
 	//Read vertex chunks
-	std::vector<SA2LVL_VertexChunk> vertex_chunks;
-
 	for (Sint32 *chunkp = model->vlist; chunkp != nullptr; chunkp = NextChunk(chunkp))
 	{
 		//Read chunk header
-		SA2LVL_VertexChunk chunk;
-
-		chunk.type = chunkp[0] & 0xFF;
-		chunk.num_verts = chunkp[1] >> 16;
-		chunk.index_offset = chunkp[1] & 0xFFFF;
+		Sint32 type = chunkp[0] & 0xFF;
+		Sint32 num_verts = chunkp[1] >> 16;
+		Sint32 index_offset = chunkp[1] & 0xFFFF;
 
 		//Read chunk data by header type
-		switch (chunk.type)
+		switch (type)
 		{
 			case NJD_CV:
 			{
@@ -107,18 +96,15 @@ void SA2LVL_LoadChunk(SALVL &lvl, COL *colp, NJS_CNK_MODEL *model)
 				struct NJS_CV { NJS_VECTOR pos, nor; };
 				NJS_CV *chunkcast = (NJS_CV*)(chunkp + 2);
 
-				for (Sint32 i = 0; i < chunk.num_verts; i++, chunkcast++)
+				for (Sint32 i = 0; i < num_verts; i++, chunkcast++)
 				{
 					SALVL_Vertex v;
 					v.pos.x = chunkcast->pos.x;
 					v.pos.y = chunkcast->pos.y;
 					v.pos.z = chunkcast->pos.z;
 
-					chunk.vertex.push_back(v);
+					chunk_model.vertex[index_offset + i] = v;
 				}
-
-				//Push chunk
-				vertex_chunks.push_back(chunk);
 				break;
 			}
 			case NJD_CV_VN:
@@ -127,7 +113,7 @@ void SA2LVL_LoadChunk(SALVL &lvl, COL *colp, NJS_CNK_MODEL *model)
 				struct NJS_CV_VN { NJS_VECTOR pos, nor; };
 				NJS_CV_VN *chunkcast = (NJS_CV_VN*)(chunkp + 2);
 
-				for (Sint32 i = 0; i < chunk.num_verts; i++, chunkcast++)
+				for (Sint32 i = 0; i < num_verts; i++, chunkcast++)
 				{
 					SALVL_Vertex v;
 					v.pos.x = chunkcast->pos.x;
@@ -137,11 +123,8 @@ void SA2LVL_LoadChunk(SALVL &lvl, COL *colp, NJS_CNK_MODEL *model)
 					v.nor.y = chunkcast->nor.y;
 					v.nor.z = chunkcast->nor.z;
 
-					chunk.vertex.push_back(v);
+					chunk_model.vertex[index_offset + i] = v;
 				}
-
-				//Push chunk
-				vertex_chunks.push_back(chunk);
 				break;
 			}
 			case NJD_CV_D8:
@@ -150,7 +133,7 @@ void SA2LVL_LoadChunk(SALVL &lvl, COL *colp, NJS_CNK_MODEL *model)
 				struct NJS_CV_D8 { NJS_VECTOR pos; NJS_COLOR col; };
 				NJS_CV_D8 *chunkcast = (NJS_CV_D8*)(chunkp + 2);
 
-				for (Sint32 i = 0; i < chunk.num_verts; i++, chunkcast++)
+				for (Sint32 i = 0; i < num_verts; i++, chunkcast++)
 				{
 					SALVL_Vertex v;
 					v.pos.x = chunkcast->pos.x;
@@ -161,11 +144,8 @@ void SA2LVL_LoadChunk(SALVL &lvl, COL *colp, NJS_CNK_MODEL *model)
 					v.b = chunkcast->col.argb.b;
 					v.a = chunkcast->col.argb.a;
 
-					chunk.vertex.push_back(v);
+					chunk_model.vertex[index_offset + i] = v;
 				}
-
-				//Push chunk
-				vertex_chunks.push_back(chunk);
 				break;
 			}
 			case NJD_CE:
@@ -176,18 +156,158 @@ void SA2LVL_LoadChunk(SALVL &lvl, COL *colp, NJS_CNK_MODEL *model)
 			}
 			default:
 			{
-				//Not necessarily a bad thing
-				std::cout << "Unrecognized chunk type " << chunk.type << std::endl;
+				//All types for SA2LVL should be accounted for
+				std::cout << "Unrecognized vertex chunk type " << type << std::endl;
 				break;
 			}
 		}
 	}
 
 	//Read polygon chunks
+	SA2LVL_PolyChunk_Material material;
+
 	for (Sint16 *chunkp = model->plist; chunkp != nullptr; chunkp = NextChunk(chunkp))
 	{
 		//Read chunk header
+		Sint16 type = chunkp[0] & 0xFF;
+
+		//Read chunk data by header type
+		switch (type)
+		{
+			case NJD_CM_D:
+			case NJD_CM_DA:
+			case NJD_CM_DS:
+			case NJD_CM_DAS:
+			{
+				//Read material data
+				struct NJS_CM { NJS_COLOR col; };
+				NJS_CM *chunkcast = (NJS_CM*)(chunkp + 1);
+
+				material.r = chunkcast->col.argb.r;
+				material.g = chunkcast->col.argb.g;
+				material.b = chunkcast->col.argb.b;
+				material.a = chunkcast->col.argb.a;
+				break;
+			}
+			case NJD_CT_TID:
+			{
+				//Read texture data
+				material.texflags = chunkp[0] & 0xFF00;
+				material.texid = chunkp[1] & 0x1FFF;
+				break;
+			}
+			case NJD_CS:
+			{
+				//Get mesh part
+				SALVL_MeshPart *meshpart = &chunk_model.mesh.parts[chunk_model.AddMaterial(material)];
+				
+				//Set material data
+				meshpart->texture = nullptr;
+				
+				//Read chunk header
+				Sint16 strip_count = chunkp[2] & 0x3FFF;
+
+				Sint16 *pchunkp = chunkp + 3;
+				for (Sint16 j = 0; j < strip_count; j++)
+				{
+					//Read index data
+					std::vector<Sint16> rawindices;
+					Uint16 indices = ((pchunkp[0] < 0) ? -pchunkp[0] : pchunkp[0]);
+					Uint16 reversed = pchunkp[0] & 0x8000;
+					pchunkp++;
+
+					for (Uint16 i = 0; i < indices; i++)
+					{
+						//Get vertex
+						SALVL_Vertex v = chunk_model.vertex[*pchunkp++];
+
+						//Add vertex to part
+						rawindices.push_back(meshpart->AddVertex(v));
+					}
+
+					//Unstrip indices
+					for (Uint16 i = 0; i < indices - 2; i++)
+					{
+						reversed ^= 0x8000;
+						if (reversed & 0x8000)
+							meshpart->indices.push_back({rawindices[i + 0], rawindices[i + 1], rawindices[i + 2]});
+						else
+							meshpart->indices.push_back({rawindices[i + 1], rawindices[i + 0], rawindices[i + 2]});
+					}
+				}
+				break;
+			}
+			case NJD_CS_UVN:
+			case NJD_CS_UVH:
+			{
+				float td = (type == NJD_CS_UVN) ? 256.0f : 1024.0f;
+
+				//Get mesh part
+				SALVL_MeshPart *meshpart = &chunk_model.mesh.parts[chunk_model.AddMaterial(material)];
+				
+				//Set material data
+				meshpart->matflags |= NJD_USE_TEXTURE;
+				meshpart->matflags |= SALVL_FLAG_REMAP(material.texflags, NJD_FFL_U, NJD_TEXTUREFLIP_FLIP_U);
+				meshpart->matflags |= SALVL_FLAG_REMAP(material.texflags, NJD_FFL_V, NJD_TEXTUREFLIP_FLIP_V);
+				meshpart->texture = (material.texid >= 0) ? &lvl.textures[material.texid] : nullptr;
+
+				//Read chunk header
+				Sint16 strip_count = chunkp[2] & 0x3FFF;
+
+				Sint16 *pchunkp = chunkp + 3;
+				for (Sint16 j = 0; j < strip_count; j++)
+				{
+					//Read index data
+					std::vector<Sint16> rawindices;
+					Uint16 indices = ((pchunkp[0] < 0) ? -pchunkp[0] : pchunkp[0]);
+					Uint16 reversed = pchunkp[0] & 0x8000;
+					pchunkp++;
+
+					for (Uint16 i = 0; i < indices; i++)
+					{
+						//Get vertex
+						SALVL_Vertex v = chunk_model.vertex[*pchunkp++];
+
+						struct NJD_CS_UV { NJS_TEX tex; };
+						NJD_CS_UV *chunkcast = (NJD_CS_UV *)pchunkp;
+						pchunkp += sizeof(NJD_CS_UV) / sizeof(*pchunkp);
+
+						v.tex.x = (Float)chunkcast->tex.u / td;
+						v.tex.y = (Float)chunkcast->tex.v / td;
+
+						//Add vertex to part
+						rawindices.push_back(meshpart->AddVertex(v));
+					}
+
+					//Unstrip indices
+					for (Uint16 i = 0; i < indices - 2; i++)
+					{
+						reversed ^= 0x8000;
+						if (reversed & 0x8000)
+							meshpart->indices.push_back({rawindices[i + 0], rawindices[i + 1], rawindices[i + 2]});
+						else
+							meshpart->indices.push_back({rawindices[i + 1], rawindices[i + 0], rawindices[i + 2]});
+					}
+				}
+				break;
+			}
+			case NJD_CE:
+			case NJD_CN:
+			{
+				//End of chunk or null chunk
+				break;
+			}
+			default:
+			{
+				//All types for SA2LVL should be accounted for
+				std::cout << "Unrecognized polygon chunk type " << type << std::endl;
+				break;
+			}
+		}
 	}
+
+	//Push mesh to map
+	lvl.meshes[model] = chunk_model.mesh;
 }
 
 //SA2LVL basic loader
@@ -293,7 +413,7 @@ void SA2LVL_LoadBasic(SALVL &lvl, COL *colp, NJS_MODEL *model)
 		}
 	}
 
-	//Push mesh to map and instance
+	//Push mesh to map
 	lvl.meshes[model] = mesh;
 }
 

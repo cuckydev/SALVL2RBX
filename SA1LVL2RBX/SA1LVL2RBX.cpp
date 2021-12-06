@@ -129,7 +129,7 @@ void SA1LVL_LoadBasic(SALVL &lvl, COL *colp, NJS_MODEL_SADX *model)
 		}
 	}
 
-	//Push mesh to map and instance
+	//Push mesh to map
 	lvl.meshes[model] = mesh;
 }
 
