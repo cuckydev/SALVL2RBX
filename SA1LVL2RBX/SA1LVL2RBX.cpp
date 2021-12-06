@@ -82,7 +82,7 @@ void SA1LVL_LoadBasic(SALVL &lvl, COL *colp, NJS_MODEL_SADX *model)
 		{
 			meshpart->matflags = nmaterial->attrflags;
 
-			meshpart->texture = (nmaterial->attrflags & NJD_FLAG_USE_TEXTURE) ? &lvl.textures[nmaterial->attr_texId] : nullptr;
+			meshpart->texture = (meshpart->matflags & NJD_FLAG_USE_TEXTURE) ? &lvl.textures[nmaterial->attr_texId] : nullptr;
 			meshpart->diffuse = ((Uint32)nmaterial->diffuse.argb.r << 16) | ((Uint32)nmaterial->diffuse.argb.g << 8) | ((Uint32)nmaterial->diffuse.argb.b);
 		}
 

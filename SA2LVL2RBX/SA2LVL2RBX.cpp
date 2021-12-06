@@ -240,16 +240,17 @@ void SA2LVL_LoadChunk(SALVL &lvl, COL *colp, NJS_CNK_MODEL *model)
 			case NJD_CS_UVN:
 			case NJD_CS_UVH:
 			{
-				float td = (type == NJD_CS_UVN) ? 256.0f : 1024.0f;
-
 				//Get mesh part
 				SALVL_MeshPart *meshpart = &chunk_model.mesh.parts[chunk_model.AddMaterial(material)];
 				
 				//Set material data
-				meshpart->matflags |= NJD_USE_TEXTURE;
-				meshpart->matflags |= SALVL_FLAG_REMAP(material.texflags, NJD_FFL_U, NJD_TEXTUREFLIP_FLIP_U);
-				meshpart->matflags |= SALVL_FLAG_REMAP(material.texflags, NJD_FFL_V, NJD_TEXTUREFLIP_FLIP_V);
+				meshpart->matflags |= NJD_FLAG_USE_TEXTURE;
+				meshpart->matflags |= SALVL_FLAG_REMAP(material.texflags, NJD_FFL_U, NJD_FLAG_FLIP_U);
+				meshpart->matflags |= SALVL_FLAG_REMAP(material.texflags, NJD_FFL_V, NJD_FLAG_FLIP_V);
 				meshpart->texture = (material.texid >= 0) ? &lvl.textures[material.texid] : nullptr;
+
+				float du = ((type == NJD_CS_UVN) ? 256.0f : 1024.0f) * ((meshpart->matflags & NJD_FLAG_FLIP_U) ? 2.0f : 1.0f);
+				float dv = ((type == NJD_CS_UVN) ? 256.0f : 1024.0f) * ((meshpart->matflags & NJD_FLAG_FLIP_V) ? 2.0f : 1.0f);
 
 				//Read chunk header
 				Sint16 strip_count = chunkp[2] & 0x3FFF;
@@ -272,8 +273,8 @@ void SA2LVL_LoadChunk(SALVL &lvl, COL *colp, NJS_CNK_MODEL *model)
 						NJD_CS_UV *chunkcast = (NJD_CS_UV *)pchunkp;
 						pchunkp += sizeof(NJD_CS_UV) / sizeof(*pchunkp);
 
-						v.tex.x = (Float)chunkcast->tex.u / td;
-						v.tex.y = (Float)chunkcast->tex.v / td;
+						v.tex.x = (Float)chunkcast->tex.u / du;
+						v.tex.y = (Float)chunkcast->tex.v / dv;
 
 						//Add vertex to part
 						rawindices.push_back(meshpart->AddVertex(v));
@@ -366,7 +367,7 @@ void SA2LVL_LoadBasic(SALVL &lvl, COL *colp, NJS_MODEL *model)
 		{
 			meshpart->matflags = nmaterial->attrflags;
 
-			meshpart->texture = (nmaterial->attrflags & NJD_FLAG_USE_TEXTURE) ? &lvl.textures[nmaterial->attr_texId] : nullptr;
+			meshpart->texture = (meshpart->matflags & NJD_FLAG_USE_TEXTURE) ? &lvl.textures[nmaterial->attr_texId] : nullptr;
 			meshpart->diffuse = ((Uint32)nmaterial->diffuse.argb.r << 16) | ((Uint32)nmaterial->diffuse.argb.g << 8) | ((Uint32)nmaterial->diffuse.argb.b);
 		}
 
