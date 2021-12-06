@@ -157,7 +157,6 @@ int SA1LVL_Loader(SALVL &lvl, std::string path_lvl)
 		NJS_OBJECT *object = colp->Model;
 		if (object != nullptr)
 		{
-			//Get model to use
 			if (object->model != nullptr)
 			{
 				//Create mesh instance
