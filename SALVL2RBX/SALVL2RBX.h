@@ -23,6 +23,7 @@ struct SALVL_Texture
 	std::string name, name_fu, name_fv, name_fuv;
 	std::string path, path_fu, path_fv, path_fuv;
 	std::string url, url_fu, url_fv, url_fuv;
+	std::string material = "Plastic";
 	int xres = 0, yres = 0;
 	bool transparent = false;
 };

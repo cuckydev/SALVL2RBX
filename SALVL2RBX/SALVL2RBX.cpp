@@ -20,6 +20,47 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
+//Roblox enums
+std::unordered_map<std::string, int> rbxenum_material = {
+	{"Plastic", 256},
+	{"SmoothPlastic", 272},
+	{"Neon", 288},
+	{"Wood", 512},
+	{"WoodPlanks", 528},
+	{"Marble", 784},
+	{"Basalt", 788},
+	{"Slate", 800},
+	{"CrackedLava", 804},
+	{"Concrete", 816},
+	{"Limestone", 820},
+	{"Granite", 832},
+	{"Pavement", 836},
+	{"Brick", 848},
+	{"Pebble", 864},
+	{"Cobblestone", 880},
+	{"Rock", 896},
+	{"Sandstone", 912},
+	{"CorrodedMetal", 1040},
+	{"DiamondPlate", 1056},
+	{"Foil", 1072},
+	{"Metal", 1088},
+	{"Grass", 1280},
+	{"LeafyGrass", 1284},
+	{"Sand", 1296},
+	{"Fabric", 1312},
+	{"Snow", 1328},
+	{"Mud", 1344},
+	{"Ground", 1360},
+	{"Asphalt", 1376},
+	{"Salt", 1392},
+	{"Ice", 1536},
+	{"Glacier", 1552},
+	{"Glass", 1568},
+	{"ForceField", 1584},
+	{"Air", 1792},
+	{"Water", 2048}
+};
+
 //CSG mesh
 #include "md5.h"
 
@@ -526,6 +567,26 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 
 		if (delim_pathstart != std::string::npos && delim_pathend != std::string::npos)
 		{
+			//Get texture material
+			auto delim_material = line.find_last_of(":");
+			if (delim_material != std::string::npos)
+			{
+				std::string mata = line.substr(delim_material + 1);
+				if (mata.empty())
+				{
+					//Exclude
+					texture.material = "";
+				}
+				else
+				{
+					//Get enum value
+					auto mati = rbxenum_material.find(mata);
+					if (mati != rbxenum_material.end())
+						texture.material = std::to_string(mati->second);
+				}
+			}
+			
+			//Get texture name
 			texture.name = line.substr(delim_pathstart + 1, (delim_pathend - delim_pathstart) - 1);
 			std::cout << "  " << texture.name << std::endl;
 
@@ -859,9 +920,19 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 
 			//Add to appropriate list
 			if (i.surf_flag & SALVL_SURFFLAG_SOLID)
+			{
+				//Disable texture if a disallowed texture
+				if ((meshpart->matflags & NJD_FLAG_USE_TEXTURE) && meshpart->texture != nullptr && meshpart->texture->material.empty())
+					meshpart->matflags &= ~NJD_FLAG_USE_TEXTURE;
 				mesh_collision.push_back(meshpart_instance);
+			}
 			else if (i.surf_flag & SALVL_SURFFLAG_VISIBLE)
+			{
+				//Exclude part if a disallowed texture
+				if ((meshpart->matflags & NJD_FLAG_USE_TEXTURE) && meshpart->texture != nullptr && meshpart->texture->material.empty())
+					continue;
 				mesh_visual.push_back(meshpart_instance);
+			}
 		}
 	}
 
@@ -993,11 +1064,12 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 		stream_rbxmx << "<Z>" << i.meshpart->size.z << "</Z>" << std::endl;
 		stream_rbxmx << "</Vector3>" << std::endl;
 		stream_rbxmx << "<Content name=\"MeshID\"><url>" << i.meshpart->url << "</url></Content>" << std::endl;
-		if ((i.meshpart->matflags & NJD_FLAG_USE_TEXTURE) && i.meshpart->texture != nullptr && !i.meshpart->texture->transparent)
+		if ((i.meshpart->matflags & NJD_FLAG_USE_TEXTURE) && i.meshpart->texture != nullptr)
 		{
 			stream_rbxmx << "<Content name=\"TextureID\"><url>";
 			stream_rbxmx << i.meshpart->url_texture;
 			stream_rbxmx << "</url></Content>" << std::endl;
+			stream_rbxmx << "<token name=\"Material\">" << i.meshpart->texture->material << "</token>" << std::endl;
 		}
 		stream_rbxmx << "<SharedString name=\"PhysicalConfigData\">" << csgmesh->enc_hash << "</SharedString>" << std::endl;
 		stream_rbxmx << "<float name=\"Transparency\">" << ((i.surf_flag & SALVL_SURFFLAG_VISIBLE) ? 0.0f : 1.0f) << "</float>" << std::endl;
@@ -1007,12 +1079,12 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 		{
 			//SurfaceAppearance
 			stream_rbxmx << "<Item class = \"SurfaceAppearance\">" << std::endl;
-			stream_rbxmx << "<Properties>" << std::endl;
-			stream_rbxmx << "<token name=\"AlphaMode\">1</token>" << std::endl;
-			stream_rbxmx << "<Content name=\"ColorMap\"><url>";
-			stream_rbxmx << i.meshpart->url_texture;
-			stream_rbxmx << "</url></Content>" << std::endl;
-			stream_rbxmx << "</Properties>" << std::endl;
+				stream_rbxmx << "<Properties>" << std::endl;
+					stream_rbxmx << "<token name=\"AlphaMode\">1</token>" << std::endl;
+					stream_rbxmx << "<Content name=\"ColorMap\"><url>";
+						stream_rbxmx << i.meshpart->url_texture;
+					stream_rbxmx << "</url></Content>" << std::endl;
+				stream_rbxmx << "</Properties>" << std::endl;
 			stream_rbxmx << "</Item>" << std::endl;
 		}
 		stream_rbxmx << "</Item>" << std::endl;
@@ -1060,11 +1132,12 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 		stream_rbxmx << "<Z>" << i.meshpart->size.z << "</Z>" << std::endl;
 		stream_rbxmx << "</Vector3>" << std::endl;
 		stream_rbxmx << "<Content name=\"MeshID\"><url>" << i.meshpart->url << "</url></Content>" << std::endl;
-		if ((i.meshpart->matflags & NJD_FLAG_USE_TEXTURE) && i.meshpart->texture != nullptr && !i.meshpart->texture->transparent)
+		if ((i.meshpart->matflags & NJD_FLAG_USE_TEXTURE) && i.meshpart->texture != nullptr)
 		{
 			stream_rbxmx << "<Content name=\"TextureID\"><url>";
 			stream_rbxmx << i.meshpart->url_texture;
 			stream_rbxmx << "</url></Content>" << std::endl;
+			stream_rbxmx << "<token name=\"Material\">" << i.meshpart->texture->material << "</token>" << std::endl;
 		}
 		stream_rbxmx << "<float name=\"Transparency\">" << ((i.surf_flag & SALVL_SURFFLAG_VISIBLE) ? 0.0f : 1.0f) << "</float>" << std::endl;
 		stream_rbxmx << "<Color3uint8 name = \"Color3uint8\">" << i.meshpart->diffuse << "</Color3uint8>" << std::endl;
@@ -1073,12 +1146,12 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 		{
 			//SurfaceAppearance
 			stream_rbxmx << "<Item class = \"SurfaceAppearance\">" << std::endl;
-			stream_rbxmx << "<Properties>" << std::endl;
-			stream_rbxmx << "<token name=\"AlphaMode\">1</token>" << std::endl;
-			stream_rbxmx << "<Content name=\"ColorMap\"><url>";
-			stream_rbxmx << i.meshpart->url_texture;
-			stream_rbxmx << "</url></Content>" << std::endl;
-			stream_rbxmx << "</Properties>" << std::endl;
+				stream_rbxmx << "<Properties>" << std::endl;
+					stream_rbxmx << "<token name=\"AlphaMode\">1</token>" << std::endl;
+					stream_rbxmx << "<Content name=\"ColorMap\"><url>";
+						stream_rbxmx << i.meshpart->url_texture;
+					stream_rbxmx << "</url></Content>" << std::endl;
+				stream_rbxmx << "</Properties>" << std::endl;
 			stream_rbxmx << "</Item>" << std::endl;
 		}
 		stream_rbxmx << "</Item>" << std::endl;
