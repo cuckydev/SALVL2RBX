@@ -185,6 +185,8 @@ int SA1LVL_Loader(SALVL &lvl, std::string path_lvl)
 					SA1LVL_LoadBasic(lvl, colp, object->getbasicdxmodel());
 					meshinstance.mesh = &lvl.meshes[object->model];
 				}
+				if (colp->Flags & SA1LVL_SURFFLAG_VISIBLE)
+					meshinstance.mesh->do_upload = true;
 
 				//Push mesh instance
 				lvl.meshinstances.push_back(meshinstance);

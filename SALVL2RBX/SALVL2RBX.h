@@ -153,6 +153,7 @@ struct SALVL_Mesh
 {
 	//Contained mesh parts
 	std::unordered_map<Uint16, SALVL_MeshPart> parts;
+	bool do_upload = false; //Only upload parts if visible
 };
 
 struct SALVL_MeshInstance

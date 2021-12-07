@@ -583,6 +583,8 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 					auto mati = rbxenum_material.find(mata);
 					if (mati != rbxenum_material.end())
 						texture.material = std::to_string(mati->second);
+					else
+						std::cout << "Unknown material " << mata << " using Plastic" << std::endl;
 				}
 			}
 			
@@ -705,6 +707,10 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 			SALVL_MeshPart *meshpart = &j.second;
 			meshpart->AABBCorrect();
 
+			//Don't write mesh if not to be uploaded
+			if (!mesh->do_upload)
+				continue;
+
 			//Open mesh file
 			meshpart->name = std::to_string(mesh_ind) + ".mesh";
 			std::cout << "  " << meshpart->name << std::endl;
@@ -767,12 +773,18 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 
 		int num_meshes = 0;
 		for (auto &i : lvl.meshes)
+		{
+			if (!i.second.do_upload)
+				continue;
 			for (auto &j : i.second.parts)
 				num_meshes++;
+		}
 
 		std::cout << "  Uploading " << num_meshes << " meshes..." << std::endl;
 		for (auto &i : lvl.meshes)
 		{
+			if (!i.second.do_upload)
+				continue;
 			for (auto &j : i.second.parts)
 			{
 				//Upload mesh
@@ -850,8 +862,12 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 
 		//Assign uploaded textures to meshes
 		for (auto &i : lvl.meshes)
+		{
+			if (!i.second.do_upload)
+				continue;
 			for (auto &j : i.second.parts)
 				j.second.url_texture = uploaded_texs[j.second.name_texture];
+		}
 	}
 	else
 	{
@@ -867,6 +883,8 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 		}
 		for (auto &i : lvl.meshes)
 		{
+			if (!i.second.do_upload)
+				continue;
 			for (auto &j : i.second.parts)
 			{
 				j.second.url = "rbxasset://salvl/" + j.second.name;
@@ -1063,7 +1081,8 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 		stream_rbxmx << "<Y>" << i.meshpart->size.y << "</Y>" << std::endl;
 		stream_rbxmx << "<Z>" << i.meshpart->size.z << "</Z>" << std::endl;
 		stream_rbxmx << "</Vector3>" << std::endl;
-		stream_rbxmx << "<Content name=\"MeshID\"><url>" << i.meshpart->url << "</url></Content>" << std::endl;
+		if (!i.meshpart->url.empty())
+			stream_rbxmx << "<Content name=\"MeshID\"><url>" << i.meshpart->url << "</url></Content>" << std::endl;
 		if ((i.meshpart->matflags & NJD_FLAG_USE_TEXTURE) && i.meshpart->texture != nullptr)
 		{
 			stream_rbxmx << "<Content name=\"TextureID\"><url>";
@@ -1131,7 +1150,8 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 		stream_rbxmx << "<Y>" << i.meshpart->size.y << "</Y>" << std::endl;
 		stream_rbxmx << "<Z>" << i.meshpart->size.z << "</Z>" << std::endl;
 		stream_rbxmx << "</Vector3>" << std::endl;
-		stream_rbxmx << "<Content name=\"MeshID\"><url>" << i.meshpart->url << "</url></Content>" << std::endl;
+		if (!i.meshpart->url.empty())
+			stream_rbxmx << "<Content name=\"MeshID\"><url>" << i.meshpart->url << "</url></Content>" << std::endl;
 		if ((i.meshpart->matflags & NJD_FLAG_USE_TEXTURE) && i.meshpart->texture != nullptr)
 		{
 			stream_rbxmx << "<Content name=\"TextureID\"><url>";

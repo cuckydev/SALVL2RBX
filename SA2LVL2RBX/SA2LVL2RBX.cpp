@@ -473,6 +473,8 @@ int SA2LVL_Loader(SALVL &lvl, std::string path_lvl)
 						SA2LVL_LoadBasic(lvl, colp, object->getbasicmodel());
 					meshinstance.mesh = &lvl.meshes[object->model];
 				}
+				if (colp->Flags & SA2LVL_SURFFLAG_VISIBLE)
+					meshinstance.mesh->do_upload = true;
 
 				//Push mesh instance
 				lvl.meshinstances.push_back(meshinstance);
