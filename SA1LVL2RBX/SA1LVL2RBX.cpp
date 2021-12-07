@@ -5,15 +5,6 @@
 #include "LandtableInfo.h"
 
 //SA1LVL types
-#define SA1LVL_OBJFLAG_NO_POSITION 0x01
-#define SA1LVL_OBJFLAG_NO_ROTATE   0x02
-#define SA1LVL_OBJFLAG_NO_SCALE    0x04
-#define SA1LVL_OBJFLAG_NO_DISPLAY  0x08
-#define SA1LVL_OBJFLAG_NO_CHILDREN 0x10
-#define SA1LVL_OBJFLAG_ROTATE_XYZ  0x20
-#define SA1LVL_OBJFLAG_NO_ANIMATE  0x40
-#define SA1LVL_OBJFLAG_NO_MORPH    0x80
-
 #define SA1LVL_SURFFLAG_SOLID                  0x1
 #define SA1LVL_SURFFLAG_WATER                  0x2
 #define SA1LVL_SURFFLAG_NO_FRICTION            0x4
@@ -164,17 +155,17 @@ int SA1LVL_Loader(SALVL &lvl, std::string path_lvl)
 				meshinstance.surf_flag |= SALVL_FLAG_REMAP(colp->Flags, SA1LVL_SURFFLAG_SOLID, SALVL_SURFFLAG_SOLID);
 				meshinstance.surf_flag |= SALVL_FLAG_REMAP(colp->Flags, SA1LVL_SURFFLAG_VISIBLE, SALVL_SURFFLAG_VISIBLE);
 
-				if (object->evalflags & SA1LVL_OBJFLAG_ROTATE_XYZ)
+				if (object->evalflags & NJD_EVAL_ZXY_ANG)
 				{
-					Reimp_njRotateZ(meshinstance.matrix, object->ang[2]);
 					Reimp_njRotateY(meshinstance.matrix, object->ang[1]);
 					Reimp_njRotateX(meshinstance.matrix, object->ang[0]);
+					Reimp_njRotateZ(meshinstance.matrix, object->ang[2]);
 				}
 				else
 				{
+					Reimp_njRotateZ(meshinstance.matrix, object->ang[2]);
 					Reimp_njRotateY(meshinstance.matrix, object->ang[1]);
 					Reimp_njRotateX(meshinstance.matrix, object->ang[0]);
-					Reimp_njRotateZ(meshinstance.matrix, object->ang[2]);
 				}
 
 				meshinstance.pos.x = object->pos[0];
