@@ -452,17 +452,11 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 	std::string targv[5];
 	if (argc < 5)
 	{
-		/*
 		std::cout << "Please input: upload/[content directory] scale salvl texlist_index_txt" << std::endl;
 		std::cin >> std::quoted(targv[1]);
 		std::cin >> std::quoted(targv[2]);
 		std::cin >> std::quoted(targv[3]);
 		std::cin >> std::quoted(targv[4]);
-		*/
-		targv[1] = "C:/Users/CKDEV/AppData/Local/Roblox Studio Mod Manager/ModFiles/content";
-		targv[2] = "0.495";
-		targv[3] = "C:/sa/cityescape.sa2blvl";
-		targv[4] = "C:/sa/cityescape/index.txt";
 	}
 	else
 	{
