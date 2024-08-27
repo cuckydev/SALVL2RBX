@@ -20,59 +20,73 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
-//Roblox enums
+static bool DoesThisFileExist(const std::string &name)
+{
+	std::ifstream f(name.c_str());
+	return f.good();
+}
+
+// Roblox enums
 std::unordered_map<std::string, int> rbxenum_material = {
-	{"Plastic", 256},
-	{"SmoothPlastic", 272},
-	{"Neon", 288},
-	{"Wood", 512},
-	{"WoodPlanks", 528},
-	{"Marble", 784},
-	{"Basalt", 788},
-	{"Slate", 800},
-	{"CrackedLava", 804},
-	{"Concrete", 816},
-	{"Limestone", 820},
-	{"Granite", 832},
-	{"Pavement", 836},
-	{"Brick", 848},
-	{"Pebble", 864},
-	{"Cobblestone", 880},
-	{"Rock", 896},
-	{"Sandstone", 912},
-	{"CorrodedMetal", 1040},
-	{"DiamondPlate", 1056},
-	{"Foil", 1072},
-	{"Metal", 1088},
-	{"Grass", 1280},
-	{"LeafyGrass", 1284},
-	{"Sand", 1296},
-	{"Fabric", 1312},
-	{"Snow", 1328},
-	{"Mud", 1344},
-	{"Ground", 1360},
-	{"Asphalt", 1376},
-	{"Salt", 1392},
-	{"Ice", 1536},
-	{"Glacier", 1552},
-	{"Glass", 1568},
-	{"ForceField", 1584},
-	{"Air", 1792},
-	{"Water", 2048}
+	{ "Plastic", 256 },
+	{ "SmoothPlastic", 272 },
+	{ "Neon", 288 },
+	{ "Wood", 512 },
+	{ "WoodPlanks", 528 },
+	{ "Marble", 784 },
+	{ "Basalt", 788 },
+	{ "Slate", 800 },
+	{ "CrackedLava", 804 },
+	{ "Concrete", 816 },
+	{ "Limestone", 820 },
+	{ "Granite", 832 },
+	{ "Pavement", 836 },
+	{ "Brick", 848 },
+	{ "Pebble", 864 },
+	{ "Cobblestone", 880 },
+	{ "Rock", 896 },
+	{ "Sandstone", 912 },
+	{ "CorrodedMetal", 1040 },
+	{ "DiamondPlate", 1056 },
+	{ "Foil", 1072 },
+	{ "Metal", 1088 },
+	{ "Grass", 1280 },
+	{ "LeafyGrass", 1284 },
+	{ "Sand", 1296 },
+	{ "Fabric", 1312 },
+	{ "Snow", 1328 },
+	{ "Mud", 1344 },
+	{ "Ground", 1360 },
+	{ "Asphalt", 1376 },
+	{ "Salt", 1392 },
+	{ "Ice", 1536 },
+	{ "Glacier", 1552 },
+	{ "Glass", 1568 },
+	{ "ForceField", 1584 },
+	{ "Air", 1792 },
+	{ "Water", 2048 },
+	{ "Cardboard", 2304 },
+	{ "Carpet", 2305 },
+	{ "CeramicTiles", 2306 },
+	{ "ClayRoofTiles", 2307 },
+	{ "RoofShingles", 2308 },
+	{ "Leather", 2309 },
+	{ "Plaster", 2310 },
+	{ "Rubber", 2311 },
 };
 
-//CSG mesh
+// CSG mesh
 #include "md5.h"
 
 struct SALVL_CSGMesh
 {
-	//Encoded data
-	std::string enc_base64; //Base64 encoded
-	std::string enc_hash; //MD5 hash
+	// Encoded data
+	std::string enc_base64; // Base64 encoded
+	std::string enc_hash; // MD5 hash
 
 	std::string Base64(const Uint8 *data, size_t size)
 	{
-		//Get basic output
+		// Get basic output
 		static const char *lookup = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 		std::string out;
@@ -98,7 +112,7 @@ struct SALVL_CSGMesh
 		while (out.size() % 4)
 			out.push_back('=');
 
-		//Line break
+		// Line break
 		std::string result;
 		for (size_t i = 0; i < out.size(); i += 72)
 		{
@@ -112,10 +126,10 @@ struct SALVL_CSGMesh
 
 	void Encode(std::vector<Uint8> &data)
 	{
-		//Encode to Base64 (UGH)
+		// Encode to Base64 (UGH)
 		enc_base64 = Base64(data.data(), data.size());
 
-		//Encode to MD5 then to Base64
+		// Encode to MD5 then to Base64
 		MD5 md5;
 		md5.Init();
 		md5.Update((unsigned char*)enc_base64.c_str(), enc_base64.size());
@@ -125,14 +139,14 @@ struct SALVL_CSGMesh
 	}
 };
 
-//Ninja reimplementation
+// Ninja reimplementation
 void Reimp_njRotateX(NJS_MATRIX cframe, Angle x)
 {
-	//Calculate the sine and cosine of our angle
+	// Calculate the sine and cosine of our angle
 	Float sin = sinf((float)x * 3.14159265358979323846f / 0x8000);
 	Float cos = cosf((float)x * 3.14159265358979323846f / 0x8000);
 
-	//Apply rotation onto matrix
+	// Apply rotation onto matrix
 	Float m10 = cframe[M10];
 	Float m11 = cframe[M11];
 	Float m12 = cframe[M12];
@@ -150,11 +164,11 @@ void Reimp_njRotateX(NJS_MATRIX cframe, Angle x)
 
 void Reimp_njRotateY(NJS_MATRIX cframe, Angle x)
 {
-	//Calculate the sine and cosine of our angle
+	// Calculate the sine and cosine of our angle
 	Float sin = sinf((float)x * 3.14159265358979323846f / 0x8000);
 	Float cos = cosf((float)x * 3.14159265358979323846f / 0x8000);
 
-	//Apply rotation onto matrix
+	// Apply rotation onto matrix
 	Float m00 = cframe[M00];
 	Float m01 = cframe[M01];
 	Float m02 = cframe[M02];
@@ -172,11 +186,11 @@ void Reimp_njRotateY(NJS_MATRIX cframe, Angle x)
 
 void Reimp_njRotateZ(NJS_MATRIX cframe, Angle x)
 {
-	//Calculate the sine and cosine of our angle
+	// Calculate the sine and cosine of our angle
 	Float sin = sinf((float)x * 3.14159265358979323846f / 0x8000);
 	Float cos = cosf((float)x * 3.14159265358979323846f / 0x8000);
 
-	//Apply rotation onto matrix
+	// Apply rotation onto matrix
 	Float m00 = cframe[M00];
 	Float m01 = cframe[M01];
 	Float m02 = cframe[M02];
@@ -192,7 +206,7 @@ void Reimp_njRotateZ(NJS_MATRIX cframe, Angle x)
 	cframe[M13] = cos * cframe[M13] - m03 * sin;
 }
 
-//File writes
+// File writes
 void Write16(std::ofstream &stream, Uint16 x)
 {
 	stream.put((char)x);
@@ -227,7 +241,7 @@ template<typename T> void PushFloat(std::vector<T> &stream, float x)
 	Push32<T>(stream, *(Uint32*)&x);
 }
 
-//Asset upload
+// Asset upload
 std::string URLEncode(const std::string &value)
 {
 	std::ostringstream escaped;
@@ -236,14 +250,14 @@ std::string URLEncode(const std::string &value)
 
 	for (auto &i : value)
 	{
-		//Keep alphanumeric and other accepted characters intact
+		// Keep alphanumeric and other accepted characters intact
 		if (isalnum(i) || i == '-' || i == '_' || i == '.' || i == '~')
 		{
 			escaped << i;
 			continue;
 		}
 
-		//Any other characters are percent-encoded
+		// Any other characters are percent-encoded
 		escaped << std::uppercase;
 		escaped << '%' << std::setw(2) << int((unsigned char)i);
 		escaped << std::nouppercase;
@@ -254,7 +268,7 @@ std::string URLEncode(const std::string &value)
 
 char *GetHTTPData(HINTERNET request, DWORD query, DWORD *size)
 {
-	//Request response
+	// Request response
 	DWORD response_size = 0;
 	if (HttpQueryInfoA(request, query, nullptr, &response_size, nullptr) == FALSE && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
 	{
@@ -276,7 +290,7 @@ char *GetHTTPData(HINTERNET request, DWORD query, DWORD *size)
 
 std::string GetHTTPString(HINTERNET request, DWORD query)
 {
-	//Request response
+	// Request response
 	DWORD size;
 	char *responseb = GetHTTPData(request, query, &size);
 
@@ -288,16 +302,16 @@ std::string GetHTTPString(HINTERNET request, DWORD query)
 class AssetManager
 {
 private:
-	//Internal state
+	// Internal state
 	std::string xsrf_token = "FETCH";
 
-	//Internet instances
+	// Internet instances
 	HINTERNET internet = nullptr, roblox = nullptr;
 
 public:
 	bool Start()
 	{
-		//Setup WinInet
+		// Setup WinInet
 		if ((internet = InternetOpenA("RobloxStudio/WinInet", INTERNET_OPEN_TYPE_PRECONFIG, nullptr, nullptr, 0)) == nullptr)
 		{
 			std::cout << "Failed to create Internet " << GetLastError() << std::endl;
@@ -314,7 +328,7 @@ public:
 
 	std::string UploadAsset(std::string object, std::vector<char> data)
 	{
-		//Open request to upload service
+		// Open request to upload service
 		static PCSTR accept_types[] = { "*/*", nullptr };
 
 		HINTERNET upload_request = HttpOpenRequestA(roblox, "POST", object.c_str(), nullptr, nullptr, accept_types, 0, 0);
@@ -324,42 +338,42 @@ public:
 			return "";
 		}
 
-		//Try to send request 10 times
+		// Try to send request 10 times
 		for (int i = 0; i < 10; i++)
 		{
-			//Setup headers
+			// Setup headers
 			HttpAddRequestHeadersA(upload_request, "Content-Type: */*\n", -1, HTTP_ADDREQ_FLAG_ADD | HTTP_ADDREQ_FLAG_REPLACE);
 			HttpAddRequestHeadersA(upload_request, "User-Agent: RobloxStudio/WinInet\n", -1, HTTP_ADDREQ_FLAG_ADD | HTTP_ADDREQ_FLAG_REPLACE);
 			HttpAddRequestHeadersA(upload_request, ("X-CSRF-TOKEN: " + xsrf_token + "\n").c_str(), -1, HTTP_ADDREQ_FLAG_ADD | HTTP_ADDREQ_FLAG_REPLACE);
 
-			//Send request
+			// Send request
 			if (HttpSendRequestA(upload_request, nullptr, -1, (void *)data.data(), data.size()) == FALSE)
 				break;
 
-			//Handle XSRF property
+			// Handle XSRF property
 			std::string response = GetHTTPString(upload_request, HTTP_QUERY_STATUS_TEXT);
 			std::cout << response << std::endl;
 
 			if (response.find("XSRF") != std::string::npos)
 			{
-				//Get headers
+				// Get headers
 				char *headers = GetHTTPData(upload_request, HTTP_QUERY_RAW_HEADERS, nullptr);
 				if (headers == nullptr)
 					break;
 
 				for (char *headerp = headers; *headerp != '\0'; headerp += strlen(headerp) + 1)
 				{
-					//Split header
+					// Split header
 					std::string header(headerp);
 
 					auto split = header.find_first_of(": ");
 					if (split != std::string::npos)
 					{
-						//Get key and value
+						// Get key and value
 						std::string key = header.substr(0, split);
 						std::string value = header.substr(split + 2);
 
-						//Check if XSRF
+						// Check if XSRF
 						if (key == "x-csrf-token")
 							xsrf_token = value;
 					}
@@ -367,7 +381,7 @@ public:
 			}
 			else if (response == "OK")
 			{
-				//Read response
+				// Read response
 				DWORD blocksize = 4096;
 				DWORD received = 0;
 				std::string block(blocksize, 0);
@@ -378,18 +392,18 @@ public:
 					result += block;
 				}
 
-				//Return response
+				// Return response
 				InternetCloseHandle(upload_request);
 				return result;
 			}
 			else
 			{
-				//Something went wrong, usually "Too many uploads."
+				// Something went wrong, usually "Too many uploads."
 				Sleep(3000);
 			}
 		}
 
-		//Close request
+		// Close request
 		InternetCloseHandle(upload_request);
 		return "";
 	}
@@ -403,7 +417,7 @@ public:
 	}
 };
 
-//Console static initialization
+// Console static initialization
 class ConsoleInit
 {
 	public:
@@ -412,7 +426,7 @@ class ConsoleInit
 };
 static ConsoleInit consoleinit_;
 
-//WSA static initialization
+// WSA static initialization
 class WSInit
 {
 	public:
@@ -426,23 +440,29 @@ class WSInit
 };
 static WSInit wsinit_;
 
-//Entry point
+// Entry point
 int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 {
 	SALVL lvl;
 
-	//Randomize mutation
+	// Randomize mutation
 	srand((int)time(nullptr));
 
-	//Check arguments
+	// Check arguments
 	std::string targv[5];
 	if (argc < 5)
 	{
-		std::cout << "Please input: upload/content_directory scale sa1lvl texlist_index_txt" << std::endl;
+		/*
+		std::cout << "Please input: upload/[content directory] scale salvl texlist_index_txt" << std::endl;
 		std::cin >> std::quoted(targv[1]);
 		std::cin >> std::quoted(targv[2]);
 		std::cin >> std::quoted(targv[3]);
 		std::cin >> std::quoted(targv[4]);
+		*/
+		targv[1] = "C:/Users/CKDEV/AppData/Local/Roblox Studio Mod Manager/ModFiles/content";
+		targv[2] = "0.495";
+		targv[3] = "C:/sa/cityescape.sa2blvl";
+		targv[4] = "C:/sa/cityescape/index.txt";
 	}
 	else
 	{
@@ -452,7 +472,7 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 		targv[4] = std::string(argv[4]);
 	}
 
-	//Get content folder
+	// Get content folder
 	std::string path_content = targv[1];
 
 	AssetManager asset_manager;
@@ -460,11 +480,11 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 
 	if (path_content == "upload")
 	{
-		//Upload mode, generic content path
+		// Upload mode, generic content path
 		path_content = "./";
 		upload = true;
 
-		//WARNING
+		// WARNING
 		std::cout << "WARNING:" << std::endl;
 		std::cout << "By using upload mode, you agree to two terms." << std::endl;
 		std::cout << " 1. This program will retrieve your Roblox Studio session (ROBLOSECURITY) to upload assets onto Roblox. Note that this program does not communicate to any servers other than Roblox's." << std::endl;
@@ -473,18 +493,18 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 
 		char pressed;
 		std::cin >> pressed;
-		if (pressed != 'y' || pressed == 'Y')
+		if (pressed != 'y' && pressed != 'Y')
 			return 0;
 
-		//Start asset manager
+		// Start asset manager
 		if (asset_manager.Start())
 			return 1;
 
-		//Get ROBLOSECURITY from Roblox Studio registry
+		// Get ROBLOSECURITY from Roblox Studio registry
 		HKEY studio_key;
 		if (RegOpenKeyEx(HKEY_CURRENT_USER, TEXT("SOFTWARE\\Roblox\\RobloxStudioBrowser\\roblox.com"), 0, KEY_READ, &studio_key) == ERROR_SUCCESS)
 		{
-			//Read cookies from registry
+			// Read cookies from registry
 			std::string cookie;
 
 			static std::string values[] = {
@@ -503,7 +523,11 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 					std::string values = std::string(value);
 					auto start = values.find("COOK::");
 					if (start != std::string::npos)
-						InternetSetCookieA("https://data.roblox.com", i.c_str(), values.substr(start + 7, values.size() - (start + 8)).c_str());
+					{
+						auto cvalue = values.substr(start + 7, values.size() - (start + 8));
+						std::cout << i << " = " << cvalue << std::endl;
+						InternetSetCookieA("https://data.roblox.com", i.c_str(), cvalue.c_str());
+					}
 				}
 			}
 
@@ -518,13 +542,13 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 	}
 	else
 	{
-		//Ensure content path has slash at the end
+		// Ensure content path has slash at the end
 		if (path_content.back() != '/' && path_content.back() != '\\')
 			path_content += "/";
 	}
 	CreateDirectoryA((path_content + "salvl").c_str(), NULL);
 
-	//Get other arguments
+	// Get other arguments
 	std::string path_rbxmx = path_content + "salvl/level.rbxmx";
 
 	float scale;
@@ -542,7 +566,7 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 	if (path_base_cut != std::string::npos)
 		path_texbase = path_texlist.substr(0, path_base_cut + 1);
 
-	//Read texlist
+	// Read texlist
 	std::cout << "Reading texlist..." << std::endl;
 
 	std::ifstream stream_texlist(path_texlist);
@@ -555,11 +579,11 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 
 	while (!stream_texlist.eof())
 	{
-		//Read line
+		// Read line
 		std::string line;
 		std::getline(stream_texlist, line);
 
-		//Read texture name
+		// Read texture name
 		SALVL_Texture texture;
 
 		auto delim_pathstart = line.find_first_of(",");
@@ -567,19 +591,19 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 
 		if (delim_pathstart != std::string::npos && delim_pathend != std::string::npos)
 		{
-			//Get texture material
+			// Get texture material
 			auto delim_material = line.find_last_of(":");
 			if (delim_material != std::string::npos)
 			{
 				std::string mata = line.substr(delim_material + 1);
 				if (mata.empty())
 				{
-					//Exclude
+					// Exclude
 					texture.material = "";
 				}
 				else
 				{
-					//Get enum value
+					// Get enum value
 					auto mati = rbxenum_material.find(mata);
 					if (mati != rbxenum_material.end())
 						texture.material = std::to_string(mati->second);
@@ -588,15 +612,31 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 				}
 			}
 			
-			//Get texture name
+			// Get texture name
 			texture.name = line.substr(delim_pathstart + 1, (delim_pathend - delim_pathstart) - 1);
 			std::cout << "  " << texture.name << std::endl;
 
-			texture.name_fu = "fu_" + texture.name;
-			texture.name_fv = "fv_" + texture.name;
-			texture.name_fuv = "fuv_" + texture.name;
+			texture.name_fu = "u_" + texture.name;
+			texture.name_fv = "v_" + texture.name;
+			texture.name_fuv = "uv_" + texture.name;
 
-			//Read original image
+			texture.path = path_content + "salvl/" + texture.name;
+			texture.path_fu = path_content + "salvl/" + texture.name_fu;
+			texture.path_fv = path_content + "salvl/" + texture.name_fv;
+			texture.path_fuv = path_content + "salvl/" + texture.name_fuv;
+
+			// Check if any of the paths dont exist
+			bool exists = true;
+			if (!DoesThisFileExist(texture.path))
+				exists = false;
+			if (!DoesThisFileExist(texture.path_fu))
+				exists = false;
+			if (!DoesThisFileExist(texture.path_fv))
+				exists = false;
+			if (!DoesThisFileExist(texture.path_fuv))
+				exists = false;
+
+			// Read original image
 			int tex_w, tex_h;
 			unsigned char *tex_src = stbi_load((path_texbase + texture.name).c_str(), &tex_w, &tex_h, NULL, 4);
 			if (tex_src == nullptr)
@@ -610,108 +650,121 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 			texture.xres = tex_w;
 			texture.yres = tex_h;
 
-			//Check if transparent
+			// Check if transparent
 			for (int i = 0; i < tex_w * tex_h; i++)
 				if (tex_src[i * 4 + 3] != 0xFF)
 					texture.transparent = true;
 
-			//Create flipped versions
-			unsigned char *tex_fu = (unsigned char *)STBI_MALLOC(tex_p * 2 * tex_h);
-			unsigned char *tex_fv = (unsigned char *)STBI_MALLOC(tex_p * tex_h * 2);
-			unsigned char *tex_fuv = (unsigned char *)STBI_MALLOC(tex_p * 2 * tex_h * 2);
-			if (tex_fv == nullptr || tex_fu == nullptr || tex_fuv == nullptr)
+			if (!exists)
 			{
-				std::cout << "Failed to allocate texture flip buffers" << std::endl;
-				system("pause");
-				return 1;
-			}
+				// Create flipped versions
+				unsigned char *tex_fu = (unsigned char *)STBI_MALLOC(tex_p * 2 * tex_h);
+				unsigned char *tex_fv = (unsigned char *)STBI_MALLOC(tex_p * tex_h * 2);
+				unsigned char *tex_fuv = (unsigned char *)STBI_MALLOC(tex_p * 2 * tex_h * 2);
+				if (tex_fv == nullptr || tex_fu == nullptr || tex_fuv == nullptr)
+				{
+					std::cout << "Failed to allocate texture flip buffers" << std::endl;
+					system("pause");
+					return 1;
+				}
 
-			//Horizontal flip
-			for (int x = 0; x < tex_w * 2; x++)
-			{
-				int src_x = x;
-				if (src_x >= tex_w)
-					src_x = tex_w * 2 - src_x - 1;
+				// Horizontal flip
+				for (int x = 0; x < tex_w * 2; x++)
+				{
+					int src_x = x;
+					if (src_x >= tex_w)
+						src_x = tex_w * 2 - src_x - 1;
+					for (int y = 0; y < tex_h; y++)
+						memcpy(tex_fu + (y * tex_p * 2) + (x * 4), tex_src + (y * tex_p) + (src_x * 4), 4);
+				}
+
+				// Vertical flip
+				memcpy(tex_fv, tex_src, tex_p * tex_h);
 				for (int y = 0; y < tex_h; y++)
-					memcpy(tex_fu + (y * tex_p * 2) + (x * 4), tex_src + (y * tex_p) + (src_x * 4), 4);
+					memcpy(tex_fv + tex_p * (tex_h + y), tex_src + tex_p * (tex_h - y - 1), tex_p);
+
+				// Vertical and horizontal flip
+				memcpy(tex_fuv, tex_fu, tex_p * 2 * tex_h);
+				for (int y = 0; y < tex_h; y++)
+					memcpy(tex_fuv + tex_p * 2 * (tex_h + y), tex_fu + tex_p * 2 * (tex_h - y - 1), tex_p * 2);
+
+				// Mutate textures
+				unsigned char *charp[4];
+				charp[0] = tex_src + (tex_p * (rand() % tex_h)) + ((rand() % tex_w) * 4) + (rand() % 3);
+				charp[1] = tex_fu + ((tex_p * 2) * (rand() % tex_h)) + ((rand() % (tex_w * 2)) * 4) + (rand() % 3);
+				charp[2] = tex_fv + (tex_p * (rand() % (tex_h * 2))) + ((rand() % tex_w) * 4) + (rand() % 3);
+				charp[3] = tex_fuv + ((tex_p * 2) * (rand() % (tex_h * 2))) + ((rand() % (tex_w * 2)) * 4) + (rand() % 3);
+
+				for (int i = 0; i < 4; i++)
+				{
+					if (rand() & 1)
+						*charp[i] = (*charp[i] != 0) ? (*charp[i] - 1) : 0;
+					else
+						*charp[i] = (*charp[i] != 0xFF) ? (*charp[i] + 1) : 0xFF;
+				}
+
+				// Write textures
+				if (stbi_write_png(texture.path.c_str(), tex_w, tex_h, 4, tex_src, tex_p) == 0 ||
+					stbi_write_png(texture.path_fu.c_str(), tex_w * 2, tex_h, 4, tex_fu, tex_p * 2) == 0 ||
+					stbi_write_png(texture.path_fv.c_str(), tex_w, tex_h * 2, 4, tex_fv, tex_p) == 0 ||
+					stbi_write_png(texture.path_fuv.c_str(), tex_w * 2, tex_h * 2, 4, tex_fuv, tex_p * 2) == 0)
+				{
+					std::cout << "Failed to write textures" << std::endl;
+					system("pause");
+					return 1;
+				}
+
+				STBI_FREE(tex_fu);
+				STBI_FREE(tex_fv);
+				STBI_FREE(tex_fuv);
 			}
-
-			//Vertical flip
-			memcpy(tex_fv, tex_src, tex_p * tex_h);
-			for (int y = 0; y < tex_h; y++)
-				memcpy(tex_fv + tex_p * (tex_h + y), tex_src + tex_p * (tex_h - y - 1), tex_p);
-
-			//Vertical and horizontal flip
-			memcpy(tex_fuv, tex_fu, tex_p * 2 * tex_h);
-			for (int y = 0; y < tex_h; y++)
-				memcpy(tex_fuv + tex_p * 2 * (tex_h + y), tex_fu + tex_p * 2 * (tex_h - y - 1), tex_p * 2);
-
-			//Mutate textures
-			unsigned char *charp[4];
-			charp[0] = tex_src + (tex_p * (rand() % tex_h)) + ((rand() % tex_w) * 4) + (rand() % 3);
-			charp[1] = tex_fu + ((tex_p * 2) * (rand() % tex_h)) + ((rand() % (tex_w * 2)) * 4) + (rand() % 3);
-			charp[2] = tex_fv + (tex_p * (rand() % (tex_h * 2))) + ((rand() % tex_w) * 4) + (rand() % 3);
-			charp[3] = tex_fuv + ((tex_p * 2) * (rand() % (tex_h * 2))) + ((rand() % (tex_w * 2)) * 4) + (rand() % 3);
-
-			for (int i = 0; i < 4; i++)
-			{
-				if (rand() & 1)
-					*charp[i] = (*charp[i] != 0) ? (*charp[i] - 1) : 0;
-				else
-					*charp[i] = (*charp[i] != 0xFF) ? (*charp[i] + 1) : 0xFF;
-			}
-
-			//Write textures
-			texture.path = path_content + "salvl/" + texture.name;
-			texture.path_fu = path_content + "salvl/" + texture.name_fu;
-			texture.path_fv = path_content + "salvl/" + texture.name_fv;
-			texture.path_fuv = path_content + "salvl/" + texture.name_fuv;
-
-			if (stbi_write_png(texture.path.c_str(), tex_w, tex_h, 4, tex_src, tex_p) == 0 ||
-				stbi_write_png(texture.path_fu.c_str(), tex_w * 2, tex_h, 4, tex_fu, tex_p * 2) == 0 ||
-				stbi_write_png(texture.path_fv.c_str(), tex_w, tex_h * 2, 4, tex_fv, tex_p) == 0 ||
-				stbi_write_png(texture.path_fuv.c_str(), tex_w * 2, tex_h * 2, 4, tex_fuv, tex_p * 2) == 0)
-			{
-				std::cout << "Failed to write textures" << std::endl;
-				system("pause");
-				return 1;
-			}
-
 			stbi_image_free(tex_src);
-			STBI_FREE(tex_fu);
-			STBI_FREE(tex_fv);
-			STBI_FREE(tex_fuv);
 
-			//Push to texture list
+			// Push to texture list
 			lvl.textures.push_back(texture);
 		}
 	}
 
-	//Read landtable from LVL file
+	// Confirm for texture mods
+	std::cout << "Please modify textures (to remove external links and such) now." << std::endl;
+	system("pause");
+
+	// Read landtable from LVL file
 	std::cout << "Converting LVL " << path_lvl << " to landtable..." << std::endl;
 
 	if (loader(lvl, path_lvl))
 		return 1;
 
-	//Write RBX meshes
+	// Post process meshes
+#if SALVL_DOUBLESIDED
+	for (auto &mesh : lvl.meshes)
+	{
+		for (auto &part : mesh.second.parts)
+		{
+			part.second.AutoNormals();
+		}
+	}
+#endif
+
+	// Write RBX meshes
 	std::cout << "Writing RBX meshes..." << std::endl;
 	unsigned int mesh_ind = 0;
 	for (auto &i : lvl.meshes)
 	{
-		//Write mesh parts
+		// Write mesh parts
 		SALVL_Mesh *mesh = &i.second;
 
 		for (auto &j : mesh->parts)
 		{
-			//Correct meshpart AABB
+			// Correct meshpart AABB
 			SALVL_MeshPart *meshpart = &j.second;
 			meshpart->AABBCorrect();
 
-			//Don't write mesh if not to be uploaded
+			// Don't write mesh if not to be uploaded
 			if (!mesh->do_upload)
 				continue;
 
-			//Open mesh file
+			// Open mesh file
 			meshpart->name = std::to_string(mesh_ind) + ".mesh";
 			std::cout << "  " << meshpart->name << std::endl;
 
@@ -729,27 +782,27 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 			}
 			stream_mesh.write("version 2.00\n", 13);
 
-			//Write mesh header
-			Write16(stream_mesh, 12); //sizeof_MeshHeader
-			stream_mesh.put((char)0x28); //sizeof_MeshVertex
-			stream_mesh.put((char)0x0C); //sizeof_MeshFace
+			// Write mesh header
+			Write16(stream_mesh, 12); // sizeof_MeshHeader
+			stream_mesh.put((char)0x28); // sizeof_MeshVertex
+			stream_mesh.put((char)0x0C); // sizeof_MeshFace
 
 			unsigned int num_verts = meshpart->vertex.size();
 			Write32(stream_mesh, num_verts);
 			unsigned int num_faces = meshpart->indices.size();
 			Write32(stream_mesh, num_faces);
 
-			//Write vertex data
+			// Write vertex data
 			for (auto &k : meshpart->vertex)
 			{
-				WriteFloat(stream_mesh, k.pos.x); WriteFloat(stream_mesh, k.pos.y); WriteFloat(stream_mesh, k.pos.z); //Position
-				WriteFloat(stream_mesh, k.nor.x); WriteFloat(stream_mesh, k.nor.y); WriteFloat(stream_mesh, k.nor.z); //Normal
-				WriteFloat(stream_mesh, k.tex.x); WriteFloat(stream_mesh, k.tex.y); //Texture
-				stream_mesh.put((char)0); stream_mesh.put((char)0); stream_mesh.put((char)-127); stream_mesh.put((char)1); //Tangent
-				stream_mesh.put((char)k.r); stream_mesh.put((char)k.g); stream_mesh.put((char)k.b); stream_mesh.put((char)k.a); //RGBA tint
+				WriteFloat(stream_mesh, k.pos.x); WriteFloat(stream_mesh, k.pos.y); WriteFloat(stream_mesh, k.pos.z); // Position
+				WriteFloat(stream_mesh, k.nor.x); WriteFloat(stream_mesh, k.nor.y); WriteFloat(stream_mesh, k.nor.z); // Normal
+				WriteFloat(stream_mesh, k.tex.x); WriteFloat(stream_mesh, k.tex.y); // Texture
+				stream_mesh.put((char)0); stream_mesh.put((char)0); stream_mesh.put((char)-127); stream_mesh.put((char)1); // Tangent
+				stream_mesh.put((char)k.r); stream_mesh.put((char)k.g); stream_mesh.put((char)k.b); stream_mesh.put((char)k.a); // RGBA tint
 			}
 
-			//Write indices
+			// Write indices
 			for (auto &k : meshpart->indices)
 			{
 				Write32(stream_mesh, k.i[0]);
@@ -757,18 +810,18 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 				Write32(stream_mesh, k.i[2]);
 			}
 
-			//Increment mesh index
+			// Increment mesh index
 			mesh_ind++;
 		}
 	}
 
-	//Get URLs of assets
+	// Get URLs of assets
 	if (upload)
 	{
-		//Upload content to Roblox
+		// Upload content to Roblox
 		std::cout << "Uploading content to Roblox..." << std::endl;
 
-		//Upload meshes
+		// Upload meshes
 		std::unordered_map<std::string, std::string> upload_texs;
 
 		int num_meshes = 0;
@@ -787,7 +840,7 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 				continue;
 			for (auto &j : i.second.parts)
 			{
-				//Upload mesh
+				// Upload mesh
 				std::ifstream meshbuf_stream(j.second.path, std::ios::binary);
 				std::vector<char> meshbuf((std::istreambuf_iterator<char>(meshbuf_stream)), std::istreambuf_iterator<char>());
 				std::string object = "/ide/publish/UploadNewMesh?name=" + URLEncode(j.second.name) + "&description=" + URLEncode("Generated by SALVL2RBX");
@@ -799,7 +852,7 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 				}
 				std::cout << "  Uploaded mesh " << j.second.name << " to " << j.second.url << std::endl;
 
-				//Set texture to be loaded
+				// Set texture to be loaded
 				if ((j.second.matflags & NJD_FLAG_USE_TEXTURE) && j.second.texture != nullptr)
 				{
 					if (j.second.matflags & NJD_FLAG_FLIP_U)
@@ -816,7 +869,7 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 			}
 		}
 
-		//Upload textures
+		// Upload textures
 		std::unordered_map<std::string, std::string> uploaded_texs;
 
 		std::cout << "  Uploading " << upload_texs.size() << " textures..." << std::endl;
@@ -870,7 +923,7 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 			std::cout << "  Uploaded texture " << i.first << " to " << uploaded_texs[i.first] << std::endl;
 		}
 
-		//Assign uploaded textures to meshes
+		// Assign uploaded textures to meshes
 		for (auto &i : lvl.meshes)
 		{
 			if (!i.second.do_upload)
@@ -881,8 +934,8 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 	}
 	else
 	{
-		//Get rbxasset URLs
-		std::cout << "Getting rbxasset:// URLs..." << std::endl;
+		// Get rbxasset URLs
+		std::cout << "Getting rbxasset://URLs..." << std::endl;
 
 		for (auto &i : lvl.textures)
 		{
@@ -915,7 +968,7 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 		}
 	}
 
-	//Get where meshes should be placed
+	// Get where meshes should be placed
 	std::cout << "Placing MeshPart instances..." << std::endl;
 
 	std::vector<SALVL_MeshPartInstance> mesh_collision;
@@ -927,12 +980,12 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 			continue;
 		for (auto &j : i.mesh->parts)
 		{
-			//Construct mesh part instance
+			// Construct mesh part instance
 			SALVL_MeshPart *meshpart = &j.second;
 
 			SALVL_MeshPartInstance meshpart_instance;
 			meshpart_instance.meshpart = meshpart;
-			meshpart_instance.matrix[M00] = i.matrix[M00]; //NOTE: Flip row and columns
+			meshpart_instance.matrix[M00] = i.matrix[M00]; // NOTE: Flip row and columns
 			meshpart_instance.matrix[M10] = i.matrix[M01];
 			meshpart_instance.matrix[M20] = i.matrix[M02];
 			meshpart_instance.matrix[M01] = i.matrix[M10];
@@ -946,17 +999,17 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 			meshpart_instance.pos.z = i.pos.z + meshpart->aabb_correct.z * i.matrix[M22] + meshpart->aabb_correct.y * i.matrix[M12] + meshpart->aabb_correct.x * i.matrix[M02];
 			meshpart_instance.surf_flag = i.surf_flag;
 
-			//Add to appropriate list
+			// Add to appropriate list
 			if (i.surf_flag & SALVL_SURFFLAG_SOLID)
 			{
-				//Disable texture if a disallowed texture
+				// Disable texture if a disallowed texture
 				if ((meshpart->matflags & NJD_FLAG_USE_TEXTURE) && meshpart->texture != nullptr && meshpart->texture->material.empty())
 					meshpart->matflags &= ~NJD_FLAG_USE_TEXTURE;
 				mesh_collision.push_back(meshpart_instance);
 			}
 			else if (i.surf_flag & SALVL_SURFFLAG_VISIBLE)
 			{
-				//Exclude part if a disallowed texture
+				// Exclude part if a disallowed texture
 				if ((meshpart->matflags & NJD_FLAG_USE_TEXTURE) && meshpart->texture != nullptr && meshpart->texture->material.empty())
 					continue;
 				mesh_visual.push_back(meshpart_instance);
@@ -964,7 +1017,7 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 		}
 	}
 
-	//Write RBXMX
+	// Write RBXMX
 	std::cout << "Writing RBXMX " << path_rbxmx << "..." << std::endl;
 
 	std::unordered_map<SALVL_MeshPart *, SALVL_CSGMesh> meshpart_csgmesh;
@@ -977,75 +1030,75 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 		return 1;
 	}
 
-	//ROBLOX model tree
+	// ROBLOX model tree
 	stream_rbxmx << "<roblox xmlns:xmime=\"http://www.w3.org/2005/05/xmlmime\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:noNamespaceSchemaLocation=\"http://www.roblox.com/roblox.xsd\" version=\"4\">" << std::endl;
-	//Level folder
+	// Level folder
 	stream_rbxmx << "<Item class = \"Folder\">" << std::endl;
 	stream_rbxmx << "<Properties>" << std::endl;
 	stream_rbxmx << "<string name=\"Name\">Level</string>" << std::endl;
 	stream_rbxmx << "</Properties>" << std::endl;
-	//Map folder
+	// Map folder
 	stream_rbxmx << "<Item class = \"Folder\">" << std::endl;
 	stream_rbxmx << "<Properties>" << std::endl;
 	stream_rbxmx << "<string name=\"Name\">Map</string>" << std::endl;
 	stream_rbxmx << "</Properties>" << std::endl;
-	//Collision Folder
+	// Collision Folder
 	stream_rbxmx << "<Item class = \"Folder\">" << std::endl;
 	stream_rbxmx << "<Properties>" << std::endl;
 	stream_rbxmx << "<string name=\"Name\">Collision</string>" << std::endl;
 	stream_rbxmx << "</Properties>" << std::endl;
 	for (auto &i : mesh_collision)
 	{
-		//Calculate CSG mesh
+		// Calculate CSG mesh
 		auto csgmeshind = meshpart_csgmesh.find(i.meshpart);
 
 		SALVL_CSGMesh *csgmesh;
 		if (csgmeshind == meshpart_csgmesh.end())
 		{
-			//Generate CSG mesh data
+			// Generate CSG mesh data
 			std::vector<Uint8> csgmesh_data;
 			csgmesh_data.push_back('C'); csgmesh_data.push_back('S'); csgmesh_data.push_back('G'); csgmesh_data.push_back('P'); csgmesh_data.push_back('H'); csgmesh_data.push_back('S');
 			Push32(csgmesh_data, 3);
 
-			//Write sub-meshes
+			// Write sub-meshes
 			for (auto &j : i.meshpart->indices)
 			{
-				//Get vertices
+				// Get vertices
 				SALVL_Vertex *v0 = &i.meshpart->vertex[j.i[0]];
 				SALVL_Vertex *v1 = &i.meshpart->vertex[j.i[1]];
 				SALVL_Vertex *v2 = &i.meshpart->vertex[j.i[2]];
 
-				//Write dummied out header
-				Push32(csgmesh_data, 16); //sizeof_TriIndices
-				csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); //TriIndices[16]
+				// Write dummied out header
+				Push32(csgmesh_data, 16); // sizeof_TriIndices
+				csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); // TriIndices[16]
 				csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00);
 				csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00);
 				csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00);
 
-				Push32(csgmesh_data, 16); //sizeof_TransformOffsets
-				csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); //TransformOffsets[16]
+				Push32(csgmesh_data, 16); // sizeof_TransformOffsets
+				csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); // TransformOffsets[16]
 				csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00);
 				csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x00); csgmesh_data.push_back(0x80); csgmesh_data.push_back(0x3F);
 
-				//Write vertices
-				Push32(csgmesh_data, 18); //numCoords
-				Push32(csgmesh_data, 4); //sizeof_float
+				// Write vertices
+				Push32(csgmesh_data, 18); // numCoords
+				Push32(csgmesh_data, 4); // sizeof_float
 
-				PushFloat(csgmesh_data, v0->pos.x); PushFloat(csgmesh_data, v0->pos.y); PushFloat(csgmesh_data, v0->pos.z); //Vertex 0
-				PushFloat(csgmesh_data, v1->pos.x); PushFloat(csgmesh_data, v1->pos.y); PushFloat(csgmesh_data, v1->pos.z); //Vertex 1
-				PushFloat(csgmesh_data, v2->pos.x); PushFloat(csgmesh_data, v2->pos.y); PushFloat(csgmesh_data, v2->pos.z); //Vertex 2
+				PushFloat(csgmesh_data, v0->pos.x); PushFloat(csgmesh_data, v0->pos.y); PushFloat(csgmesh_data, v0->pos.z); // Vertex 0
+				PushFloat(csgmesh_data, v1->pos.x); PushFloat(csgmesh_data, v1->pos.y); PushFloat(csgmesh_data, v1->pos.z); // Vertex 1
+				PushFloat(csgmesh_data, v2->pos.x); PushFloat(csgmesh_data, v2->pos.y); PushFloat(csgmesh_data, v2->pos.z); // Vertex 2
 
-				PushFloat(csgmesh_data, v0->pos.x - v0->nor.x * 0.125f); PushFloat(csgmesh_data, v0->pos.y - v0->nor.y * 0.125f); PushFloat(csgmesh_data, v0->pos.z - v0->nor.z * 0.125f); //Vertex 3
-				PushFloat(csgmesh_data, v1->pos.x - v1->nor.x * 0.125f); PushFloat(csgmesh_data, v1->pos.y - v1->nor.y * 0.125f); PushFloat(csgmesh_data, v1->pos.z - v1->nor.z * 0.125f); //Vertex 4
-				PushFloat(csgmesh_data, v2->pos.x - v2->nor.x * 0.125f); PushFloat(csgmesh_data, v2->pos.y - v2->nor.y * 0.125f); PushFloat(csgmesh_data, v2->pos.z - v2->nor.z * 0.125f); //Vertex 5
+				PushFloat(csgmesh_data, v0->pos.x - v0->nor.x * 0.125f); PushFloat(csgmesh_data, v0->pos.y - v0->nor.y * 0.125f); PushFloat(csgmesh_data, v0->pos.z - v0->nor.z * 0.125f); // Vertex 3
+				PushFloat(csgmesh_data, v1->pos.x - v1->nor.x * 0.125f); PushFloat(csgmesh_data, v1->pos.y - v1->nor.y * 0.125f); PushFloat(csgmesh_data, v1->pos.z - v1->nor.z * 0.125f); // Vertex 4
+				PushFloat(csgmesh_data, v2->pos.x - v2->nor.x * 0.125f); PushFloat(csgmesh_data, v2->pos.y - v2->nor.y * 0.125f); PushFloat(csgmesh_data, v2->pos.z - v2->nor.z * 0.125f); // Vertex 5
 
-				//Write indices
-				Push32(csgmesh_data, 6); //numIndices
-				Push32(csgmesh_data, 0); Push32(csgmesh_data, 1); Push32(csgmesh_data, 2); //Triangle 0 (front)
-				Push32(csgmesh_data, 5); Push32(csgmesh_data, 4); Push32(csgmesh_data, 3); //Triangle 1 (back)
+				// Write indices
+				Push32(csgmesh_data, 6); // numIndices
+				Push32(csgmesh_data, 0); Push32(csgmesh_data, 1); Push32(csgmesh_data, 2); // Triangle 0 (front)
+				Push32(csgmesh_data, 5); Push32(csgmesh_data, 4); Push32(csgmesh_data, 3); // Triangle 1 (back)
 			}
 
-			//Create new mesh, encode, and push to map
+			// Create new mesh, encode, and push to map
 			SALVL_CSGMesh csgmeshe;
 			csgmeshe.Encode(csgmesh_data);
 			meshpart_csgmesh[i.meshpart] = csgmeshe;
@@ -1053,11 +1106,11 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 		}
 		else
 		{
-			//Use already existing mesh
+			// Use already existing mesh
 			csgmesh = &csgmeshind->second;
 		}
 
-		//MeshPart
+		// MeshPart
 		stream_rbxmx << "<Item class = \"MeshPart\">" << std::endl;
 		stream_rbxmx << "<Properties>" << std::endl;
 		stream_rbxmx << "<bool name=\"Anchored\">true</bool>" << std::endl;
@@ -1110,7 +1163,7 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 		stream_rbxmx << "</Properties>" << std::endl;
 		if ((i.meshpart->matflags & NJD_FLAG_USE_TEXTURE) && i.meshpart->texture != nullptr && i.meshpart->texture->transparent)
 		{
-			//SurfaceAppearance
+			// SurfaceAppearance
 			stream_rbxmx << "<Item class = \"SurfaceAppearance\">" << std::endl;
 				stream_rbxmx << "<Properties>" << std::endl;
 					stream_rbxmx << "<token name=\"AlphaMode\">1</token>" << std::endl;
@@ -1123,14 +1176,14 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 		stream_rbxmx << "</Item>" << std::endl;
 	}
 	stream_rbxmx << "</Item>" << std::endl;
-	//Visual Folder
+	// Visual Folder
 	stream_rbxmx << "<Item class = \"Folder\">" << std::endl;
 	stream_rbxmx << "<Properties>" << std::endl;
 	stream_rbxmx << "<string name=\"Name\">Visual</string>" << std::endl;
 	stream_rbxmx << "</Properties>" << std::endl;
 	for (auto &i : mesh_visual)
 	{
-		//MeshPart
+		// MeshPart
 		stream_rbxmx << "<Item class = \"MeshPart\">" << std::endl;
 		stream_rbxmx << "<Properties>" << std::endl;
 		stream_rbxmx << "<bool name=\"Anchored\">true</bool>" << std::endl;
@@ -1182,7 +1235,7 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 		stream_rbxmx << "</Properties>" << std::endl;
 		if ((i.meshpart->matflags & NJD_FLAG_USE_TEXTURE) && i.meshpart->texture != nullptr && i.meshpart->texture->transparent)
 		{
-			//SurfaceAppearance
+			// SurfaceAppearance
 			stream_rbxmx << "<Item class = \"SurfaceAppearance\">" << std::endl;
 				stream_rbxmx << "<Properties>" << std::endl;
 					stream_rbxmx << "<token name=\"AlphaMode\">1</token>" << std::endl;
@@ -1197,7 +1250,7 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 	stream_rbxmx << "</Item>" << std::endl;
 	stream_rbxmx << "</Item>" << std::endl;
 	stream_rbxmx << "</Item>" << std::endl;
-	//Shared Strings (CSGMesh hashes)
+	// Shared Strings (CSGMesh hashes)
 	stream_rbxmx << "<SharedStrings>" << std::endl;
 	std::set<std::string> csgmesh_key;
 	for (auto &i : meshpart_csgmesh)
@@ -1212,7 +1265,7 @@ int SALVL2RBX(int argc, char *argv[], int (loader)(SALVL&, std::string))
 	stream_rbxmx << "</roblox>" << std::endl;
 	stream_rbxmx.close();
 
-	//Cleanup WSA
+	// Cleanup WSA
 	if (upload)
 		WSACleanup();
 
